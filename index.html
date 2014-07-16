@@ -1,0 +1,127 @@
+<html>
+<head>
+  <title>Gapless playback with Media Source Extensions!</title>
+  <style>
+    body { font-family: monospace; }
+    td { font-size: 1.5em; font-weight: bold; text-align: center}
+
+    button.active {background-color: #33CC66;}
+    button.normal {background-color: none}
+  </style>
+</head>
+<body onload="createButtons();">
+  <p>Click on the different encodings below to toggle playback.  You will hear
+  two tracks which should be seamlessly stitched together.</p>
+  <p>This demo only works with MP3 on Chrome 36+ and with AAC on Chrome 37+.</p>
+  <audio controls width="512"></audio><br/><br/>
+  <div id="buttons"></div>
+</body>
+
+<script>
+var secondsPerSample = 1.0 / 44100;
+var audio = document.querySelector('audio');
+var mediaSource = null;
+var playbackReady = false;
+
+// Files (and order) for playback.
+var audioFiles = [
+  [
+    {desc: 'mp3 - lame', type: 'audio/mpeg'},
+    {file: 'lame/track01.mp3', length: 263808, delay: 576, padding: 1572},
+    {file: 'lame/track02.mp3', length: 194688, delay: 576, padding: 1836},
+  ],
+  [
+    {desc: 'mp3 - iTunes', type: 'audio/mpeg'},
+    {file: 'mp3/track01.mp3', length: 264960, delay: 528, padding: 2772},
+    {file: 'mp3/track02.mp3', length: 194688, delay: 528, padding: 1884},
+  ],
+  [
+    {desc: 'adts - iTunes', type: 'audio/aac'},
+    {file: 'aac/track01.adts', length: 264192, delay: 2112, padding: 420},
+    {file: 'aac/track02.adts', length: 194560, delay: 2112, padding: 172},
+  ],
+  [
+    {desc: 'mp4 - iTunes', type: 'audio/mp4; codecs="mp4a.40.2"'},
+    {file: 'aac/track01.mp4', length: 264192, delay: 2112, padding: 420},
+    {file: 'aac/track02.mp4', length: 194560, delay: 2112, padding: 172},
+  ],
+];
+
+function createButtons() {
+  var buttonsDiv = document.getElementById('buttons');
+  for (var i = 0; i < audioFiles.length; ++i) {
+    var button = document.createElement('button');
+    button.innerText = audioFiles[i][0]['desc'];
+    button.value = i;
+    button.class = 'normal';
+    button.addEventListener('click', newPlayback, false)
+    buttonsDiv.appendChild(button);
+  }
+}
+
+function GET(url, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'arraybuffer';
+  xhr.onload = function(e) {
+    if (xhr.status == 200)
+      callback(xhr.response);
+    else
+      alert('GET ' + url + ' failed: ' + xhr.status);
+  };
+  xhr.send();
+}
+
+function onPlaybackReady() {
+  playbackReady = true;
+  console.log('Playback ready.');
+}
+
+function newPlayback(e) {
+  playbackReady = false;
+  mediaSource = new MediaSource();
+  audio.src = window.URL.createObjectURL(mediaSource);
+  mediaSource.addEventListener('sourceopen', onPlaybackReady, false);
+  startPlayback(e);
+}
+
+function startPlayback(e) {
+  if (!playbackReady) {
+    console.log('Playback not ready...');
+    setTimeout(startPlayback, 100, e);
+    return;
+  }
+
+  var audioFile = audioFiles[parseInt(e.toElement.value)];
+  var sourceBuffer = mediaSource.addSourceBuffer(audioFile[0]['type']);
+
+  // As each buffer ends, queue the next one via loadAudio().
+  sourceBuffer.addEventListener('updateend', loadAudio);
+
+  // Load the next file from |audioFiles| as indexed by |audioIndex|.  If no
+  // files are left for loading, flag end of stream.
+  var audioIndex = 1;
+  var startTime = 0;
+  function loadAudio(e) {
+    if (audioIndex >= audioFile.length) {
+      mediaSource.endOfStream();
+      return;
+    }
+    console.log('Loading: ', audioFile[audioIndex].file);
+    GET(audioFile[audioIndex++].file, function(data) {
+      var track = audioFile[audioIndex - 1];
+      var duration =
+          (track.length - track.padding - track.delay) * secondsPerSample;
+      sourceBuffer.timestampOffset = startTime - track.delay * secondsPerSample;
+      sourceBuffer.appendWindowStart = startTime;
+      sourceBuffer.appendBuffer(data);
+      startTime += duration;
+    });
+  }
+
+  // Load the first file and start playback.
+  loadAudio(null);
+  audio.play();
+}
+</script>
+</html>

@@ -21,7 +21,7 @@ body {
   padding: 1%;
 }
 
-.play-overlay, .waveform {
+.play-overlay, .waveform, .waveform-container {
   height: 300px;
   margin: auto;
   width: 750px;
@@ -34,7 +34,7 @@ body {
   background-position:center;
   background-color: #eee;
   opacity: .45;
-  z-index: 100;
+  z-index: 10;
   position: absolute;
 }
 

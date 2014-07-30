@@ -1,125 +1,47 @@
-<html>
-<head>
-  <title>Gapless playback with Media Source Extensions!</title>
-  <style>
-    body { font-family: monospace; }
-    td { font-size: 1.5em; font-weight: bold; text-align: center}
+<!DOCTYPE html>
 
-    button.active {background-color: #33CC66;}
-    button.normal {background-color: none}
-  </style>
-</head>
-<body onload="createButtons();">
-  <p>Click on the different encodings below to toggle playback.  You will hear
-  two tracks which should be seamlessly stitched together.</p>
-  <p>This demo only works with MP3 on Chrome 36+ and with AAC on Chrome 37+.</p>
-  <audio controls width="512"></audio><br/><br/>
-  <div id="buttons"></div>
-</body>
+<meta charset="utf-8">
+<title>Gapless playback with Media Source Extensions!</title>
 
-<script>
-var secondsPerSample = 1.0 / 44100;
-var audio = document.querySelector('audio');
-var mediaSource = null;
-var playbackReady = false;
+<link rel="stylesheet" href="gapless.css">
+<script src="wavesurfer.min.js"></script>
+<script src="gapless.js"></script>
+<!-- TODO: Look into using polymer / material elements / new hawtness. -->
 
-// Files (and order) for playback.
-var audioFiles = [
-  [
-    {desc: 'mp3 - lame', type: 'audio/mpeg'},
-    {file: 'lame/sintel_0.mp3', length: 290304, delay: 576, padding: 576},
-    {file: 'lame/sintel_1.mp3', length: 285696, delay: 576, padding: 576},
-    {file: 'lame/sintel_2.mp3', length: 285696, delay: 576, padding: 576},
-    {file: 'lame/sintel_3.mp3', length: 285696, delay: 576, padding: 576},
-    {file: 'lame/sintel_4.mp3', length: 200448, delay: 576, padding: 576},
-  ],
-  [
-    {desc: 'mp3 - iTunes', type: 'audio/mpeg'},
-    {file: 'mp3/track01.mp3', length: 264960, delay: 528, padding: 2772},
-    {file: 'mp3/track02.mp3', length: 194688, delay: 528, padding: 1884},
-  ],
-  [
-    {desc: 'adts - iTunes', type: 'audio/aac'},
-    {file: 'aac/track01.adts', length: 264192, delay: 2112, padding: 420},
-    {file: 'aac/track02.adts', length: 194560, delay: 2112, padding: 172},
-  ],
-];
+<div id="main">
+  Lorem ipsum dolor sit amet, adhuc cotidieque ut mei. Cu vocent blandit
+  gubergren cum, ea eos mediocrem argumentum, ut quo quod dictas persius. Ad
+  exerci sanctus fierent vel. Novum aliquip luptatum no vel, affert bonorum
+  mei ei, enim probo ex nam. Dicat tamquam sapientem qui no, eum eu esse meis
+  mollis.
 
-function createButtons() {
-  var buttonsDiv = document.getElementById('buttons');
-  for (var i = 0; i < audioFiles.length; ++i) {
-    var button = document.createElement('button');
-    button.innerText = audioFiles[i][0]['desc'];
-    button.value = i;
-    button.class = 'normal';
-    button.addEventListener('click', newPlayback, false)
-    buttonsDiv.appendChild(button);
-  }
-}
+  <p>Vivendum tractatos prodesset ad qui, et qui nisl accusamus. His etiam
+  dissentias an, ut tritani iracundia nec. Vis cu veniam oportere, alia
+  fierent maluisset ad vis. Aeque tempor inermis no vim, eos tation placerat
+  ut. Has no nostro elaboraret reprimique, sed amet erant expetenda ad.</p>
 
-function GET(url, callback) {
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.responseType = 'arraybuffer';
-  xhr.onload = function(e) {
-    if (xhr.status == 200)
-      callback(xhr.response);
-    else
-      alert('GET ' + url + ' failed: ' + xhr.status);
-  };
-  xhr.send();
-}
+  <p>Sint explicari forensibus est id, eos labores verterem et, te zril
+  integre legimus pri. Ignota docendi est et. Ex eam oratio soluta vivendo,
+  libris corrumpit ius ut. His in quod ponderum, vide oblique deseruisse his
+  ex. Libris pericula in his, qui ex falli aeterno, tibique accusamus no
+  sed.</p>
 
-function onPlaybackReady() {
-  playbackReady = true;
-  console.log('Playback ready.');
-}
+  <p>Usu cu error ocurreret, unum intellegam temporibus sed te. Dolor mollis
+  scribentur an vix. An simul expetendis quaerendum mei, solum mollis
+  qualisque nam at, illum graeco dissentiunt et vel. Ad tale utroque eos, ex
+  qui ferri etiam percipitur, mel eu facete officiis tincidunt. Ut ius iriure
+  omnesque, sit tota volutpat qualisque an.</p>
 
-function newPlayback(e) {
-  playbackReady = false;
-  mediaSource = new MediaSource();
-  audio.src = window.URL.createObjectURL(mediaSource);
-  mediaSource.addEventListener('sourceopen', onPlaybackReady, false);
-  startPlayback(e);
-}
+  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
+  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
+  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
 
-function startPlayback(e) {
-  if (!playbackReady) {
-    console.log('Playback not ready...');
-    setTimeout(startPlayback, 100, e);
-    return;
-  }
+  <div id="waveform_adts_gap_container" class="waveform">
+    <span class="play-overlay"></span>
+    <div id="waveform_adts_gap"><!-- Waveform will be inserted here. --></div>
+  </div>
 
-  var audioFile = audioFiles[parseInt(e.toElement.value)];
-  var sourceBuffer = mediaSource.addSourceBuffer(audioFile[0]['type']);
-
-  // As each buffer ends, queue the next one via loadAudio().
-  sourceBuffer.addEventListener('updateend', loadAudio);
-
-  // Load the next file from |audioFiles| as indexed by |audioIndex|.  If no
-  // files are left for loading, flag end of stream.
-  var audioIndex = 1;
-  var startTime = 0;
-  function loadAudio(e) {
-    if (audioIndex >= audioFile.length) {
-      mediaSource.endOfStream();
-      return;
-    }
-    console.log('Loading: ', audioFile[audioIndex].file);
-    GET(audioFile[audioIndex++].file, function(data) {
-      var track = audioFile[audioIndex - 1];
-      var duration =
-          (track.length - track.padding - track.delay) * secondsPerSample;
-      sourceBuffer.timestampOffset = startTime - track.delay * secondsPerSample;
-      sourceBuffer.appendWindowStart = startTime;
-      sourceBuffer.appendBuffer(data);
-      startTime += duration;
-    });
-  }
-
-  // Load the first file and start playback.
-  loadAudio(null);
-  audio.play();
-}
-</script>
-</html>
+  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
+  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
+  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
+</div>

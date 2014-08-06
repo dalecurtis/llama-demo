@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 
+<base target="_blank"/>
 <meta charset="utf-8">
-<title>MSE Audio: Eliminating the Gap</title>
+<title>Media Source Extensions for Audio: Eliminating the Gap</title>
 
 <link rel="stylesheet" href="gapless.css">
+<script src="https://google-code-prettify.googlecode.com/svn/loader/run_prettify.js"></script>
 <script src="wavesurfer.min.js"></script>
 <script src="peaks.js"></script>
 <script src="gapless.js"></script>
 <!-- TODO: Look into using polymer / material elements / new hawtness. -->
 
 <div id="main">
+  <div id="header">
+    <span style="float: right">Dale Curtis</span>August 5, 2014
+  </div>
   <h1>Media Source Extensions for Audio:<br>Eliminating the Gap</h1>
 
   <a href="http://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html">Media Source Extensions (MSE)<a/>
@@ -19,26 +24,65 @@
   based video players, below we'll see how they can be used for audio;
   specifically for <a href="http://en.wikipedia.org/wiki/Gapless_playback">gapless playback</a>.
 
-  <p></p>
+  <p>As all things are better demonstrated, below is the first thirty seconds of
+  the excellent <a href="http://www.sintel.org/">Sintel</a> chopped into five
+  separate <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a>
+  files and reassembled without gaps. The green lines indicate where the files
+  are joined. On Chrome 38+ this should playback seamlessly; i.e. without any
+  clicks or pops where the files are joined.</p>
 
   <div id="waveform_adts_gapless_container" class="waveform-container">
     <span class="play-overlay"></span>
     <div id="waveform_adts_gapless" class="waveform"></div>
   </div>
 
-  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
-  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
-  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
+  <p>We'll get into the details of why below, but simply attempting to play these
+  files back to back without consideration for gaps inherent in their encoding
+  will end up with noticeable artifacts between files. The red lines in the
+  following graph indicate gaps which will negatively effect playback. You'll
+  notice glitches at these points which weren't present in the first playback.</p>
 
   <div id="waveform_adts_gap_container" class="waveform-container">
     <span class="play-overlay"></span>
     <div id="waveform_adts_gap" class="waveform"></div>
   </div>
 
-  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
-  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
-  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
+  <p>There are a variety of ways gapless content can be created; see
+  <a href="">appendix a</a> for more details. For the purposes of this demo
+  we'll focus on the case where each audio segment has been encoded separately
+  without regard for its surrounding segments; which is the typical case when
+  dealing with user provided tracks.</p>
 
+  <p>Before going any further, lets backtrack and cover some basics around
+  setting up a MediaSource instance for working with audio. As the name implies,
+  Media Source Extensions are just that, extensions to the existing media
+  elements. Below we're connecting a MediaSource
+  <a href="https://developer.mozilla.org/en-US/docs/Web/API/URL.createObjectURL">Object URL</a>
+  to the src attribute of an audio element; just like you would connect a
+  standard URL.</p>
+
+<pre class="prettyprint">
+var mediaSource = new MediaSource();
+var audio = document.createElement('audio');
+
+mediaSource.addEventListener('sourceopen', function(event) {
+  var sourceBuffer = mediaSource.addSourceBuffer('audio/aac');
+
+  // Now we're ready to roll!
+}, false);
+
+audio.src = window.URL.createObjectURL(mediaSource);
+</pre>
+
+  <p>Once the MediaSource object is connected it will perform some initialization
+  and eventually fire a "sourceopen" event; at which point we can create a
+  <a href="http://www.w3.org/TR/media-source/#sourcebuffer">SourceBuffer</a>
+  which is where the fun really starts! Above we've created one for "audio/aac"
+  which is for AAC audio in an ADTS container; there are
+  <a href="http://www.w3.org/2013/12/byte-stream-format-registry/">several others</a>.
+  </p>
+
+  <div class="waveform-container"><img src="adts_gap.png"></div>
   <p>Vivendum tractatos prodesset ad qui, et qui nisl accusamus. His etiam
   dissentias an, ut tritani iracundia nec. Vis cu veniam oportere, alia
   fierent maluisset ad vis. Aeque tempor inermis no vim, eos tation placerat

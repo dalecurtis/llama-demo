@@ -1,0 +1,15 @@
+# From http://www.gnuplotting.org/attractive-plots/
+set style line 1 lc rgb '#8b1a0e' pt 1 ps 1 lt 1 lw 2 # --- red
+set style line 11 lc rgb '#808080' lt 1
+set border 3 back ls 11
+set tics nomirror
+set style line 12 lc rgb '#808080' lt 0 lw 1
+set grid back ls 12
+
+# Remove the key since there's only line per graph.
+unset key
+
+# Setup the terminal to output at the desired size.
+set terminal pngcairo size 750,300 enhanced font 'PT Serif,10'
+
+# Now run "set output '<filename>.png'"

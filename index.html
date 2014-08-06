@@ -1,19 +1,43 @@
 <!DOCTYPE html>
 
 <meta charset="utf-8">
-<title>Gapless playback with Media Source Extensions!</title>
+<title>MSE Audio: Eliminating the Gap</title>
 
 <link rel="stylesheet" href="gapless.css">
 <script src="wavesurfer.min.js"></script>
+<script src="peaks.js"></script>
 <script src="gapless.js"></script>
 <!-- TODO: Look into using polymer / material elements / new hawtness. -->
 
 <div id="main">
-  Lorem ipsum dolor sit amet, adhuc cotidieque ut mei. Cu vocent blandit
-  gubergren cum, ea eos mediocrem argumentum, ut quo quod dictas persius. Ad
-  exerci sanctus fierent vel. Novum aliquip luptatum no vel, affert bonorum
-  mei ei, enim probo ex nam. Dicat tamquam sapientem qui no, eum eu esse meis
-  mollis.
+  <h1>Media Source Extensions for Audio:<br>Eliminating the Gap</h1>
+
+  <a href="http://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html">Media Source Extensions (MSE)<a/>
+  provide extended control of playback and buffering for the HTML5 &lt;audio&gt;
+  and &lt;video&gt; elements. While originally developed to facilitate
+  <a href="http://dashif.org/mpeg-dash/">Dynamic Adaptive Streaming over HTTP (DASH)</a>
+  based video players, below we'll see how they can be used for audio;
+  specifically for <a href="http://en.wikipedia.org/wiki/Gapless_playback">gapless playback</a>.
+
+  <p></p>
+
+  <div id="waveform_adts_gapless_container" class="waveform-container">
+    <span class="play-overlay"></span>
+    <div id="waveform_adts_gapless" class="waveform"></div>
+  </div>
+
+  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
+  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
+  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
+
+  <div id="waveform_adts_gap_container" class="waveform-container">
+    <span class="play-overlay"></span>
+    <div id="waveform_adts_gap" class="waveform"></div>
+  </div>
+
+  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
+  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
+  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
 
   <p>Vivendum tractatos prodesset ad qui, et qui nisl accusamus. His etiam
   dissentias an, ut tritani iracundia nec. Vis cu veniam oportere, alia
@@ -31,24 +55,6 @@
   qualisque nam at, illum graeco dissentiunt et vel. Ad tale utroque eos, ex
   qui ferri etiam percipitur, mel eu facete officiis tincidunt. Ut ius iriure
   omnesque, sit tota volutpat qualisque an.</p>
-
-  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
-  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
-  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
-
-  <div id="waveform_adts_gapless_container" class="waveform-container">
-    <span class="play-overlay"></span>
-    <div id="waveform_adts_gapless" class="waveform"></div>
-  </div>
-
-  <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
-  ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse
-  in his. Nec numquam quaestio et. Prima erroribus persecuti usu ea.</p>
-
-  <div id="waveform_adts_gap_container" class="waveform-container">
-    <span class="play-overlay"></span>
-    <div id="waveform_adts_gap" class="waveform"></div>
-  </div>
 
   <p>Ex populo aperiri vel, quo id malorum theophrastus, consul virtute ex
   ius. Ei volutpat instructior vel. Eos epicuri percipit at, nisl deseruisse

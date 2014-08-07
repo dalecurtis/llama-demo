@@ -211,10 +211,6 @@ llama.drawGraph = function(container, format, isGapless, peaks) {
     waveform.play();
   }
 
-  mediaSource.addEventListener('sourceopen', function(event) {
-    llama.loadAudio(format, isGapless, mediaSource, waveform);
-  }, false);
-
   waveform.load(context, peaks);
 
   waveform.media.addEventListener('ended', function(event) {

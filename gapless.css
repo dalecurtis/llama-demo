@@ -16,15 +16,34 @@ code, pre, textarea {
   font-size: 13px;
 }
 
-h1 {
-  font-size: 32px;
-  font-weight: 300;
-  line-height: 1.1em;
-  text-align: center;
+h1, h2, h5 {
   text-rendering: optimizeLegibility;
 }
 
-pre.prettyprint {
+h1, h2 {
+  font-weight: 300;
+  line-height: 1.1em;
+}
+
+h1, h5 {
+  text-align: center;
+}
+
+h1 {
+  font-size: 32px;
+}
+
+h2 {
+  font-size: 26px;
+}
+
+h5 {
+  margin: 0;
+  padding: 0;
+  font-weight: 450;
+}
+
+pre {
   margin: 1em auto;
   padding: 1em;
   line-height: 1.35em;
@@ -45,7 +64,7 @@ pre .atn, code .atn { color: #bdb76b; } /* html/xml attribute name  - khaki */
 pre .atv, code .atv { color: #65B042; } /* html/xml attribute value - green */
 pre .dec, code .dec { color: #3387CC; } /* decimal - blue */
 
-pre.prettyprint, code.prettyprint {
+pre, code.prettyprint {
   color: white;
   background-color: #444;
   border-radius: 8px;
@@ -69,7 +88,7 @@ pre.prettyprint, code.prettyprint {
 }
 
 .play-overlay, .waveform, .waveform-container {
-  height: 300px;
+  min-height: 300px;
   margin: auto;
   width: 750px;
 }

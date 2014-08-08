@@ -62,14 +62,15 @@
   Object URL</a> to the source attribute of an audio element; just like you
   would connect a standard URL.</p>
 
-<pre class="prettyprint">
-var mediaSource = new MediaSource();
+<pre class="prettyprint lang-js">
 var audio = document.createElement('audio');
+var mediaSource = new MediaSource();
+var SEGMENTS = 5;
 
 mediaSource.addEventListener('sourceopen', function() {
   var sourceBuffer = mediaSource.addSourceBuffer('audio/aac');
 
-  function onAudioLoaded(data) {
+  function onAudioLoaded(data, index) {
     // Append the ArrayBuffer data into our new SourceBuffer.
     sourceBuffer.appendBuffer(data);
   }
@@ -77,7 +78,7 @@ mediaSource.addEventListener('sourceopen', function() {
   // Retrieve an audio segment via XHR.  For simplicity we're retrieving the
   // entire segment at once, but we could also retrieve it in chunks and append
   // each chunk separately.   MSE will take care of assembling the pieces.
-  GET('sintel/sintel_0.adts', onAudioLoaded);
+  GET('sintel/sintel_0.adts', function(data) { onAudioLoaded(data, 0); } );
 }, false);
 
 audio.src = window.URL.createObjectURL(mediaSource);
@@ -98,8 +99,8 @@ audio.src = window.URL.createObjectURL(mediaSource);
   a float sample in the range of [-1.0, 1.0].</p>
 
   <div class="waveform-container">
-    <img src="adts_gap.png">
     <h5>sintel_0.adts front samples</h5>
+    <img src="adts_gap.png">
   </div>
 
   <p>What's with all that those zero (silent) samples!? They're actually due to
@@ -108,19 +109,82 @@ audio.src = window.URL.createObjectURL(mediaSource);
   introduces some type of padding. In this case Apple's
   <a href="https://developer.apple.com/library/mac/documentation/Darwin/Reference/Manpages/man1/afconvert.1.html">
   afconvert</a> encoder added exactly 2112 padding samples to the front and 448
-  to the end. The amount of padding varies both by encoder and by content; e.g.,
-  <a href="sintel/sintel_1.adts">sintel_1.adts</a> has 960 end padding samples.
-  </p>
+  to the end. The amount of padding varies both by encoder and by content, but
+  we know the exact values based on metadata included within each file.</p>
 
   <div class="waveform-container">
-    <img src="adts_gap_end.png">
     <h5>sintel_0.adts end samples</h5>
+    <img src="adts_gap_end.png">
   </div>
 
-  <p>Vivendum tractatos prodesset ad qui, et qui nisl accusamus. His etiam
-  dissentias an, ut tritani iracundia nec. Vis cu veniam oportere, alia
-  fierent maluisset ad vis. Aeque tempor inermis no vim, eos tation placerat
-  ut. Has no nostro elaboraret reprimique, sed amet erant expetenda ad.</p>
+  <p>The sections of silence at the beginning and end of each file are what
+  causes the "glitches" between segments in the previous demo. To achieve
+  perfect gapless playback we need to remove these sections of silence. Luckily
+  this is easily done with MediaSource! Below we'll modify our onAudioLoaded()
+  method to use an
+  <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#definitions">
+  append window</a> and a
+  <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-timestampOffset">
+  timestamp offset</a> to remove this silence.</p>
+
+<pre class="prettyprint lang-js">
+function onAudioLoaded(data, index) {
+  // Parsing the gapless metadata is unfortunately non trivial and a bit messy,
+  // so we'll glaze over it here.  See appendix b if you'd like more details on
+  // how to extract this metadata.  ParseGaplessData() will return a dictionary
+  // with three elements:
+  //
+  //    audioDuration: Duration in seconds of all non-padding audio.
+  //    frontPaddingDuration: Duration in seconds of the front padding.
+  //    endPaddingDuration: Duration in seconds of the end padding.
+  //
+  var gaplessMetadata = ParseGaplessData(data);
+
+  // Each appended segment must be appended relative to the next.  To avoid any
+  // overlaps we'll use the ending timestamp of the last append as the starting
+  // point for our next append or zero if we haven't appended anything yet.
+  var appendTime = index > 0 ? sourceBuffer.buffered.end(0) : 0;
+
+  // The timestampOffset field essentially tells MediaSource where in the media
+  // timeline the data given to appendBuffer() should be placed.  I.e. if the
+  // timestampOffset is 1 second, the appended data will start 1 second into
+  // playback.
+  //
+  // MediaSource requires that the media timeline starts from time zero, so we
+  // need to ensure that the data left after filtering by the append window
+  // starts at time zero.  We'll do this by shifting all of the padding we want
+  // to discard before our append time.
+  sourceBuffer.timestampOffset =
+      appendTime - gaplessMetadata.frontPaddingDuration;
+
+  // Simply put, an append window allows you to trim off audio (or video) frames
+  // which fall outside of a specified window.  Here we'll use the end of our
+  // last append as the start of our append window and the end of the real audio
+  // data for this segment as the end of our append window.
+  sourceBuffer.appendWindowStart = appendTime;
+  sourceBuffer.appendWindowEnd = appendTime + gaplessMetadata.audioDuration;
+
+  // When appendBuffer() completes it will fire an "updateend" event signaling
+  // that it's okay to append another segment of media. Here we'll chain the
+  // append for the next segment to the completion of our current append.
+  if (index == 0) {
+    sourceBuffer.addEventListener('updateend', function() {
+      if (++index < SEGMENTS) {
+        GET('sintel/sintel_' + index + '.adts',
+            function(data) { onAudioLoaded(data, index); });
+      } else {
+        // We've loaded all available segments, so tell MediaSource there are no
+        // more buffers which will be appended.
+        mediaSource.endOfStream();
+      }
+    });
+  }
+
+  // appendBuffer() will now use the timestamp offset and append window settings
+  // to filter and timestamp the data we're appending.
+  sourceBuffer.appendBuffer(data);
+}
+</pre>
 
   <p>Sint explicari forensibus est id, eos labores verterem et, te zril
   integre legimus pri. Ignota docendi est et. Ex eam oratio soluta vivendo,
@@ -128,13 +192,37 @@ audio.src = window.URL.createObjectURL(mediaSource);
   ex. Libris pericula in his, qui ex falli aeterno, tibique accusamus no
   sed.</p>
 
-  <p>Usu cu error ocurreret, unum intellegam temporibus sed te. Dolor mollis
-  scribentur an vix. An simul expetendis quaerendum mei, solum mollis
-  qualisque nam at, illum graeco dissentiunt et vel. Ad tale utroque eos, ex
-  qui ferri etiam percipitur, mel eu facete officiis tincidunt. Ut ius iriure
-  omnesque, sit tota volutpat qualisque an.</p>
+  <div class="waveform-container">
+    <h5>sintel_0.adts with trimmed front samples</h5>
+    <img src="adts_gap.png">
+  </div>
+
+  <p>Sint explicari forensibus est id, eos labores verterem et, te zril
+  integre legimus pri. Ignota docendi est et. Ex eam oratio soluta vivendo,
+  libris corrumpit ius ut. His in quod ponderum, vide oblique deseruisse his
+  ex. Libris pericula in his, qui ex falli aeterno, tibique accusamus no
+  sed.</p>
+
+  <div class="waveform-container">
+    <h5>sintel_0.adts with trimmed end samples</h5>
+    <img src="adts_gap.png">
+  </div>
+
+
+  <p>With that we've stitched all five tracks seamlessly into one; below you can
+  see the final result. The code above is very similar to the code which powers
+  the demos in this page. Be sure to check the appendices below for a deeper
+  look at gapless content creation and metadata parsing. Also feel free to
+  explore <a href="gapless.js"><i>gapless.js</i></a> for a closer look at the
+  code powering this demo.</p>
+
+  <div id="waveform_adts_gapless_container_2" class="waveform-container">
+    <span class="play-overlay"></span>
+    <div id="waveform_adts_gapless_2" class="waveform"></div>
+  </div>
 
   <h2>~ Appendix A: Creating Gapless Content ~</h2>
+
   Creating gapless content can be hard to get right. Below we'll walk through
   how the <a href="http://www.sintel.org/">Sintel</a> media used in this demo
   were created. To start you'll need a recent build of
@@ -147,16 +235,20 @@ audio.src = window.URL.createObjectURL(mediaSource);
   <a href="https://developer.apple.com/library/mac/documentation/Darwin/Reference/Manpages/man1/afconvert.1.html">
   afconvert</a> to recreate the ADTS versions.
 
-  <pre>unzip Jan_Morgenstern-Sintel-FLAC.zip
+<pre class="prettyprint lang-bash">
+unzip Jan_Morgenstern-Sintel-FLAC.zip
 sha1sum 1-Snow_Fight.flac
-# 0535ca207ccba70d538f7324916a3f1a3d550194  1-Snow_Fight.flac</pre>
+# 0535ca207ccba70d538f7324916a3f1a3d550194  1-Snow_Fight.flac
+</pre>
 
   <p>First we'll split out the first 31.5 seconds the <i>1-Snow_Fight.flac</i>
   track. We also want to add a 2.5 second fade out starting at 28 seconds in to
   avoid any clicks once playback finishes. Using the FFmpeg command line below
   we can accomplish all of this and put the results in <i>sintel.flac</i>.</p>
 
-  <pre>ffmpeg -i 1-Snow_Fight.flac -t 31.5 -af "afade=t=out:st=28:d=2.5" sintel.flac</pre>
+<pre class="prettyprint lang-bash">
+ffmpeg -i 1-Snow_Fight.flac -t 31.5 -af "afade=t=out:st=28:d=2.5" sintel.flac
+</pre>
 
   <p>Now we'll split the file into 5 <a href="http://en.wikipedia.org/wiki/WAV">
   wave</a> files of ~6.5 seconds each. It's easiest to use wave since it's
@@ -165,19 +257,24 @@ sha1sum 1-Snow_Fight.flac
   <i>sintel_0.wav</i>, <i>sintel_1.wav</i>, <i>sintel_2.wav</i>,
   <i>sintel_3.wav</i>, and <i>sintel_4.wav</i>.</p>
 
-  <pre>ffmpeg -i sintel.flac -acodec pcm_f32le -map 0 -f segment \
-       -segment_list out.list -segment_time 6.5 sintel_%d.wav</pre>
+<pre class="prettyprint lang-bash">
+ffmpeg -i sintel.flac -acodec pcm_f32le -map 0 -f segment \
+       -segment_list out.list -segment_time 6.5 sintel_%d.wav
+</pre>
 
   <p>Next lets create the MP3 files. LAME has several options for creating
   gapless content. If you're in control of the content you might consider using
   --nogap with a batch encoding of all files to avoid padding between segments
   altogether. For the purposes of this demo though we want that padding so we'll
   use a standard high quality VBR encoding of the wave tracks.</p>
-  <pre>lame -V=2 sintel_0.wav sintel_0.mp3
+
+<pre class="prettyprint lang-bash">
+lame -V=2 sintel_0.wav sintel_0.mp3
 lame -V=2 sintel_1.wav sintel_1.mp3
 lame -V=2 sintel_2.wav sintel_2.mp3
 lame -V=2 sintel_3.wav sintel_3.mp3
-lame -V=2 sintel_4.wav sintel_4.mp3</pre>
+lame -V=2 sintel_4.wav sintel_4.mp3
+</pre>
 
   <p>That's all that's necessary to create the MP3 files. Now lets cover the far
   more involved creation of the ADTS files. We'll follow Apple's directions for
@@ -190,7 +287,8 @@ lame -V=2 sintel_4.wav sintel_4.mp3</pre>
   <a href="http://en.wikipedia.org/wiki/MP4">M4A</a> container using the
   recommended parameters.</p>
 
-  <pre>afconvert sintel_0.wav sintel_0_intermediate.caf -d 0 -f caff \
+<pre class="prettyprint lang-bash">
+afconvert sintel_0.wav sintel_0_intermediate.caf -d 0 -f caff \
           --soundcheck-generate
 afconvert sintel_1.wav sintel_1_intermediate.caf -d 0 -f caff \
           --soundcheck-generate
@@ -209,7 +307,8 @@ afconvert sintel_2_intermediate.caf -d aac -f m4af -u pgcm 2 --soundcheck-read \
 afconvert sintel_3_intermediate.caf -d aac -f m4af -u pgcm 2 --soundcheck-read \
           -b 256000 -q 127 -s 2 sintel_3.m4a
 afconvert sintel_4_intermediate.caf -d aac -f m4af -u pgcm 2 --soundcheck-read \
-          -b 256000 -q 127 -s 2 sintel_4.m4a</pre>
+          -b 256000 -q 127 -s 2 sintel_4.m4a
+</pre>
 
   <p>We now have several M4A files which, for this demo, we want to remux into
   ADTS. If you want to keep the audio in M4A you'll need to
@@ -218,13 +317,17 @@ afconvert sintel_4_intermediate.caf -d aac -f m4af -u pgcm 2 --soundcheck-read \
   files into ADTS we need to take care to ensure we carry over the gapless
   metadata written by afconvert to the new container.</p>
 
-  <pre>ffmpeg -i sintel_0.m4a -acodec copy -write_id3v2 1 sintel_0.adts
+<pre class="prettyprint lang-bash">
+ffmpeg -i sintel_0.m4a -acodec copy -write_id3v2 1 sintel_0.adts
 ffmpeg -i sintel_1.m4a -acodec copy -write_id3v2 1 sintel_1.adts
 ffmpeg -i sintel_2.m4a -acodec copy -write_id3v2 1 sintel_2.adts
 ffmpeg -i sintel_3.m4a -acodec copy -write_id3v2 1 sintel_3.adts
-ffmpeg -i sintel_4.m4a -acodec copy -write_id3v2 1 sintel_4.adts</pre>
+ffmpeg -i sintel_4.m4a -acodec copy -write_id3v2 1 sintel_4.adts
+</pre>
 
-  <p>That's all. You can now remove any intermediate files.</p>
+  <p>That's it! We now have ADTS and MP3 files with the correct metadata
+  necessary for gapless playback. See <a href="">appendix b</a> for more details
+  on just what that metadata looks like.</p>
 
   <h2>~ Appendix B: Parsing gapless MP3 metadata ~</h2>
   <p>Usu cu error ocurreret, unum intellegam temporibus sed te. Dolor mollis

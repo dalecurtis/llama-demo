@@ -105,84 +105,123 @@ llama.parseGaplessData = function(arrayBuffer) {
     realSamples -= frontPadding + endPadding;
   }
 
-  console.log('pad: ' + frontPadding +
-              ', end: ' + endPadding +
-              ', samples: ' + realSamples);
-  return [frontPadding, endPadding, realSamples];
+  return {
+    audioDuration: realSamples * SECONDS_PER_SAMPLE,
+    frontPaddingDuration: frontPadding * SECONDS_PER_SAMPLE,
+    endPaddingDuration: endPadding * SECONDS_PER_SAMPLE
+  };
 }
 
 llama.loadAudio = function(format, isGapless, mediaSource, waveform) {
   var regions = [];
-  var segmentsLeft = SEGMENTS;
   var sourceBuffer = mediaSource.addSourceBuffer(format);
 
-  function loadSegment(e) {
-    if (!segmentsLeft) {
-      mediaSource.endOfStream();
-
-      // Wavesurfer doesn't account for the marker width when setting up the
-      // graph, so extend it by a pixel after loading is complete.
-      waveform.params.container.style.width =
-          (waveform.params.container.clientWidth + 1) + 'px';
-
-      // Wavesurfer doesn't seem to handle dynamic loads very well, so ensure
-      // the peaks and graph are all drawn out appropriately before marking.
-      waveform.drawBuffer();
-
-      // Draw marks for the join points in gapless mode and highlight the gaps
-      // when in regular mode.
-      while (regions.length > 0) {
-        var mark_region = regions.shift();
-        if (mark_region[0] == mark_region[1]) {
-          waveform.mark({color: '#00FF00', position: mark_region[0], width: 1});
-        } else {
-          waveform.mark({
-            color: '#FF0000',
-            position: mark_region[0],
-            width: Math.ceil((mark_region[1] - mark_region[0]) *
-                             waveform.params.minPxPerSec)
-          });
-        }
-      }
-      return;
-    }
-
-    var segment = SEGMENTS - segmentsLeft--;
-    var audioFile =
-        SINTEL_BASE_PATH + segment + (format == 'audio/aac' ? '.adts' : '.mp3');
-    console.log('Loading: ', audioFile);
-
-    GET(audioFile, function(data) {
-      var gapless = llama.parseGaplessData(data);
-      var appendTime =
-          sourceBuffer.buffered.length > 0 ? sourceBuffer.buffered.end(0) : 0;
-      if (isGapless) {
-        sourceBuffer.timestampOffset =
-            appendTime - gapless[0] * SECONDS_PER_SAMPLE;
-        sourceBuffer.appendWindowStart = appendTime;
-        sourceBuffer.appendWindowEnd =
-            appendTime + gapless[2] * SECONDS_PER_SAMPLE;
-        regions.push([appendTime, appendTime]);
-      } else {
-        // Coalesce front and end padding between segments.
-        var frontPadDuration = gapless[0] * SECONDS_PER_SAMPLE;
-        if (regions.length == 0)
-          regions.push([appendTime, appendTime + frontPadDuration]);
-        else
-          regions[regions.length - 1][1] = appendTime + frontPadDuration;
-
-        var endOfSegment =
-            appendTime + (gapless[0] + gapless[2]) * SECONDS_PER_SAMPLE;
-        regions.push(
-            [endOfSegment, endOfSegment + gapless[1] * SECONDS_PER_SAMPLE]);
-      }
-      sourceBuffer.appendBuffer(data);
-    });
+  function segmentFilename(format, index) {
+    return SINTEL_BASE_PATH + index +
+           (format == 'audio/aac' ? '.adts' : '.mp3');
   }
 
-  // As each buffer ends, queue the next one via loadSegment().
-  sourceBuffer.addEventListener('updateend', loadSegment);
-  loadSegment();
+  function drawMarkers() {
+    // Wavesurfer doesn't account for the marker width when setting up the
+    // graph, so extend it by a pixel after loading is complete.
+    waveform.params.container.style.width =
+        (waveform.params.container.clientWidth + 1) + 'px';
+
+    // Wavesurfer doesn't seem to handle dynamic loads very well, so ensure
+    // the peaks and graph are all drawn out appropriately before marking.
+    waveform.drawBuffer();
+
+    // Draw marks for the join points in gapless mode and highlight the gaps
+    // when in regular mode.
+    while (regions.length > 0) {
+      var mark_region = regions.shift();
+      if (mark_region[0] == mark_region[1]) {
+        waveform.mark({color: '#00FF00', position: mark_region[0], width: 1});
+      } else {
+        waveform.mark({
+          color: '#FF0000',
+          position: mark_region[0],
+          width: Math.ceil((mark_region[1] - mark_region[0]) *
+                           waveform.params.minPxPerSec)
+        });
+      }
+    }
+  }
+
+  function onAudioLoaded(data, index) {
+    // Parsing the gapless metadata is unfortunately non trivial and a bit
+    // messy, so we'll glaze over it here.  See appendix b if you'd like more
+    // details on how to extract this metadata.  ParseGaplessData() will return
+    // a dictionary with three elements:
+    //
+    //    audioDuration: Duration in seconds of all non-padding audio.
+    //    frontPaddingDuration: Duration in seconds of the front padding.
+    //    endPaddingDuration: Duration in seconds of the end padding.
+    //
+    var gaplessMetadata = llama.parseGaplessData(data);
+
+    // Each appended segment must be appended relative to the next.  To avoid
+    // any overlaps we'll use the ending timestamp of the last append as the
+    // starting point for our next append or zero if we haven't appended
+    // anything yet.
+    var appendTime = index > 0 ? sourceBuffer.buffered.end(0) : 0;
+
+    if (isGapless) {
+      // The timestampOffset field essentially tells MediaSource where in the
+      // media timeline the data given to appendBuffer() should be placed.  I.e.
+      // if the timestampOffset is 1 second, the appended data will start 1
+      // second into playback.
+      //
+      // MediaSource requires that the media timeline starts from time zero, so
+      // we need to ensure that the data left after filtering by the append
+      // window starts at time zero.  We'll do this by shifting all of the
+      // padding we want to discard before our append time.
+      sourceBuffer.timestampOffset =
+          appendTime - gaplessMetadata.frontPaddingDuration;
+
+      // Simply put, an append window allows you to trim off audio (or video)
+      // frames which fall outside of a specified window.  Here we'll use the
+      // end of our last append as the start of our append window and the end of
+      // the real audio data for this segment as the end of our append window.
+      sourceBuffer.appendWindowStart = appendTime;
+      sourceBuffer.appendWindowEnd = appendTime + gaplessMetadata.audioDuration;
+      regions.push([appendTime, appendTime]);
+    } else {
+      // Coalesce front and end padding between segments.
+      var segmentStart = appendTime + gaplessMetadata.frontPaddingDuration;
+      if (regions.length == 0)
+        regions.push([appendTime, segmentStart]);
+      else
+        regions[regions.length - 1][1] = segmentStart;
+
+      var segmentEnd = segmentStart + gaplessMetadata.audioDuration;
+      regions.push(
+          [segmentEnd, segmentEnd + gaplessMetadata.endPaddingDuration]);
+    }
+
+    // When appendBuffer() completes it will fire an "updateend" event signaling
+    // that it's okay to append another segment of media. Here we'll chain the
+    // append for the next segment to the completion of our current append.
+    if (index == 0) {
+      sourceBuffer.addEventListener('updateend', function() {
+        if (++index < SEGMENTS) {
+          GET(segmentFilename(format, index),
+              function(data) { onAudioLoaded(data, index); });
+        } else {
+          // We've loaded all available segments, so tell MediaSource there are
+          // no more buffers which will be appended.
+          mediaSource.endOfStream();
+          drawMarkers();
+        }
+      });
+    }
+
+    // appendBuffer() will now use the timestamp offset and append window
+    // settings to filter and timestamp the data we're appending.
+    sourceBuffer.appendBuffer(data);
+  }
+
+  GET(segmentFilename(format, 0), function(data) { onAudioLoaded(data, 0); });
 }
 
 llama.drawGraph = function(container, format, isGapless, peaks) {
@@ -223,4 +262,6 @@ document.addEventListener('DOMContentLoaded', function(event) {
   llama.drawGraph(
       'waveform_adts_gapless', 'audio/aac', true, adts_gapless_peaks);
   llama.drawGraph('waveform_adts_gap', 'audio/aac', false, adts_gap_peaks);
+  llama.drawGraph(
+      'waveform_adts_gapless_2', 'audio/aac', true, adts_gapless_peaks);
 });

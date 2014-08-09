@@ -43,7 +43,9 @@ var SINTEL_BASE_PATH = 'sintel/sintel_';
 
 var llama = {};
 
-// Convert bytes into an integer.  Probably doesn't work right for > 31 bits.
+// Since most MP3 encoders store the gapless metadata in binary, we'll need a
+// method for turning bytes into integers.  Note: This doesn't work for values
+// larger than 2^30 since we'll overflow the signed integer type when shifting.
 llama.readInt = function(buffer) {
   var result = buffer.charCodeAt(0);
   for (var i = 1; i < buffer.length; ++i) {
@@ -80,7 +82,7 @@ llama.parseGaplessData = function(arrayBuffer) {
   // Xing padding is encoded as 24bits within the header.  Note: This code will
   // only work for Layer3 Version 1 and Layer2 MP3 files with XING frame counts
   // and gapless information.  See the following documents for more details:
-  // http://teslabs.com/openplayer/docs/docs/specs/mp3_structure2.pdf (2.1.5)
+  // http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header (2.3.1)
   // http://gingko.homeip.net/docs/file_formats/dxhead.html (FRAMES_FLAG)
   var xingDataIndex = byteStr.indexOf('Xing');
   if (xingDataIndex == -1) xingDataIndex = byteStr.indexOf('Info');
@@ -104,6 +106,8 @@ llama.parseGaplessData = function(arrayBuffer) {
 
     realSamples -= frontPadding + endPadding;
   }
+
+  console.log(realSamples + ' -- ' + frontPadding + ' -- ' + endPadding);
 
   return {
     audioDuration: realSamples * SECONDS_PER_SAMPLE,
@@ -205,8 +209,10 @@ llama.loadAudio = function(format, isGapless, mediaSource, waveform) {
     if (index == 0) {
       sourceBuffer.addEventListener('updateend', function() {
         if (++index < SEGMENTS) {
-          GET(segmentFilename(format, index),
-              function(data) { onAudioLoaded(data, index); });
+          GET(segmentFilename(format, index), function(data) {
+            console.log('Loading ' + segmentFilename(format, index));
+            onAudioLoaded(data, index);
+          });
         } else {
           // We've loaded all available segments, so tell MediaSource there are
           // no more buffers which will be appended.
@@ -221,7 +227,10 @@ llama.loadAudio = function(format, isGapless, mediaSource, waveform) {
     sourceBuffer.appendBuffer(data);
   }
 
-  GET(segmentFilename(format, 0), function(data) { onAudioLoaded(data, 0); });
+  GET(segmentFilename(format, 0), function(data) {
+    console.log('Loading ' + segmentFilename(format, 0));
+    onAudioLoaded(data, 0);
+  });
 }
 
 llama.drawGraph = function(container, format, isGapless, peaks) {
@@ -263,5 +272,5 @@ document.addEventListener('DOMContentLoaded', function(event) {
       'waveform_adts_gapless', 'audio/aac', true, adts_gapless_peaks);
   llama.drawGraph('waveform_adts_gap', 'audio/aac', false, adts_gap_peaks);
   llama.drawGraph(
-      'waveform_adts_gapless_2', 'audio/aac', true, adts_gapless_peaks);
+      'waveform_mp3_gapless', 'audio/mpeg', true, adts_gapless_peaks);
 });

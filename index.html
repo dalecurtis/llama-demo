@@ -13,7 +13,7 @@
 
 <div id="main">
   <div id="header">
-    <span style="float: right">Dale Curtis</span>August 5, 2014
+    <span style="float: right">Dale Curtis</span>August 8, 2014
   </div>
   <h1>Media Source Extensions for Audio:<br>Eliminating the Gap</h1>
 
@@ -32,7 +32,7 @@
   the files are joined. On Chrome 38+ this will playback seamlessly; i.e.,
   without any clicks or pops where the files are joined.</p>
 
-  <div id="waveform_adts_gapless_container" class="waveform-container">
+  <div class="waveform-container">
     <span class="play-overlay"></span>
     <div id="waveform_adts_gapless" class="waveform"></div>
   </div>
@@ -43,7 +43,7 @@
   graph indicate the size of these gaps. You'll hear glitches at these points
   which weren't present in the first demo.</p>
 
-  <div id="waveform_adts_gap_container" class="waveform-container">
+  <div class="waveform-container">
     <span class="play-overlay"></span>
     <div id="waveform_adts_gap" class="waveform"></div>
   </div>
@@ -95,11 +95,11 @@ audio.src = window.URL.createObjectURL(mediaSource);
   <p>Well come back to the code in a moment, but lets now look more closely at
   the file we've just appended, specifically at the front and back. Below is a
   graph of the first 3500 samples averaged across both channels from the
-  <a href="sintel/sintel_0.adts">sintel_0.adts</a> track. Each point represents
-  a float sample in the range of [-1.0, 1.0].</p>
+  <i><a href="sintel/sintel_0.adts">sintel_0.adts</a></i> track. Each point
+  represents a float sample in the range of [-1.0, 1.0].</p>
 
   <div class="waveform-container">
-    <h5>sintel_0.adts front samples</h5>
+    <h5>Beginning of sintel_0.adts</h5>
     <img src="adts_gap.png">
   </div>
 
@@ -113,15 +113,15 @@ audio.src = window.URL.createObjectURL(mediaSource);
   we know the exact values based on metadata included within each file.</p>
 
   <div class="waveform-container">
-    <h5>sintel_0.adts end samples</h5>
+    <h5>End of sintel_0.adts</h5>
     <img src="adts_gap_end.png">
   </div>
 
   <p>The sections of silence at the beginning and end of each file are what
   causes the "glitches" between segments in the previous demo. To achieve
   perfect gapless playback we need to remove these sections of silence. Luckily
-  this is easily done with MediaSource! Below we'll modify our onAudioLoaded()
-  method to use an
+  this is easily done with MediaSource! Below we'll modify our
+  <i>onAudioLoaded()</i> method to use an
   <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#definitions">
   append window</a> and a
   <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-timestampOffset">
@@ -186,40 +186,36 @@ function onAudioLoaded(data, index) {
 }
 </pre>
 
-  <p>Sint explicari forensibus est id, eos labores verterem et, te zril
-  integre legimus pri. Ignota docendi est et. Ex eam oratio soluta vivendo,
-  libris corrumpit ius ut. His in quod ponderum, vide oblique deseruisse his
-  ex. Libris pericula in his, qui ex falli aeterno, tibique accusamus no
-  sed.</p>
+  <p>Lets see what our shiny new code has accomplished by taking another look
+  at the waveform after we've applied our append windows. Below you can see that
+  the silent section at the end of
+  <i><a href="sintel/sintel_0.adts">sintel_0.adts</a></i> (in red) and
+  the silent section at the beginning of
+  <i><a href="sintel/sintel_1.adts">sintel_1.adts</a></i> (in blue) have
+  been removed; leaving us with a seamless transition between segments.</p>
 
   <div class="waveform-container">
-    <h5>sintel_0.adts with trimmed front samples</h5>
-    <img src="adts_gap.png">
+    <h5>Joining of sintel_0.adts and sintel_1.adts</h5>
+    <img src="adts_mid.png">
   </div>
 
-  <p>Sint explicari forensibus est id, eos labores verterem et, te zril
-  integre legimus pri. Ignota docendi est et. Ex eam oratio soluta vivendo,
-  libris corrumpit ius ut. His in quod ponderum, vide oblique deseruisse his
-  ex. Libris pericula in his, qui ex falli aeterno, tibique accusamus no
-  sed.</p>
+  <p>With that we've stitched all five segments seamlessly into one and have
+  subsequently reached the end of our demo. Before we go, you may have noticed
+  that our <i>onAudioLoaded()</i> method has no consideration for containers or
+  codecs... Which means all of these techniques will work irrespective of the
+  container or codec type; below you can replay the original demo using MP3
+  instead of ADTS.</p>
 
   <div class="waveform-container">
-    <h5>sintel_0.adts with trimmed end samples</h5>
-    <img src="adts_gap.png">
-  </div>
-
-
-  <p>With that we've stitched all five tracks seamlessly into one; below you can
-  see the final result. The code above is very similar to the code which powers
-  the demos in this page. Be sure to check the appendices below for a deeper
-  look at gapless content creation and metadata parsing. Also feel free to
-  explore <a href="gapless.js"><i>gapless.js</i></a> for a closer look at the
-  code powering this demo.</p>
-
-  <div id="waveform_adts_gapless_container_2" class="waveform-container">
     <span class="play-overlay"></span>
-    <div id="waveform_adts_gapless_2" class="waveform"></div>
+    <div id="waveform_mp3_gapless" class="waveform"></div>
   </div>
+
+  <p>If you'd like to know more check the appendices below for a deeper look at
+  gapless content creation and metadata parsing. You can also explore
+  <a href="gapless.js"><i>gapless.js</i></a> for a closer look at the code
+  powering this demo.</p>
+  <p>Thanks for reading!</p>
 
   <h2>~ Appendix A: Creating Gapless Content ~</h2>
 
@@ -266,7 +262,7 @@ ffmpeg -i sintel.flac -acodec pcm_f32le -map 0 -f segment \
   gapless content. If you're in control of the content you might consider using
   --nogap with a batch encoding of all files to avoid padding between segments
   altogether. For the purposes of this demo though we want that padding so we'll
-  use a standard high quality VBR encoding of the wave tracks.</p>
+  use a standard high quality VBR encoding of the wave files.</p>
 
 <pre class="prettyprint lang-bash">
 lame -V=2 sintel_0.wav sintel_0.mp3
@@ -285,7 +281,9 @@ lame -V=2 sintel_4.wav sintel_4.mp3
   the instructions, before encoding them as
   <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a> in an
   <a href="http://en.wikipedia.org/wiki/MP4">M4A</a> container using the
-  recommended parameters.</p>
+  recommended parameters. Unfortunately afconvert won't write the gapless
+  metadata we require into an ADTS container, so we'll have to demux the M4A
+  into ADTS using FFmpeg afterward.</p>
 
 <pre class="prettyprint lang-bash">
 afconvert sintel_0.wav sintel_0_intermediate.caf -d 0 -f caff \
@@ -329,10 +327,137 @@ ffmpeg -i sintel_4.m4a -acodec copy -write_id3v2 1 sintel_4.adts
   necessary for gapless playback. See <a href="">appendix b</a> for more details
   on just what that metadata looks like.</p>
 
-  <h2>~ Appendix B: Parsing gapless MP3 metadata ~</h2>
-  <p>Usu cu error ocurreret, unum intellegam temporibus sed te. Dolor mollis
-  scribentur an vix. An simul expetendis quaerendum mei, solum mollis
-  qualisque nam at, illum graeco dissentiunt et vel. Ad tale utroque eos, ex
-  qui ferri etiam percipitur, mel eu facete officiis tincidunt. Ut ius iriure
-  omnesque, sit tota volutpat qualisque an.</p>
+  <h2>~ Appendix B: Parsing Gapless Metadata ~</h2>
+  <p>Just like creating gapless content, parsing the gapless metadata can be
+  tricky since there's no standard method for storage. Below we'll cover how the
+  two most common encoders, LAME and iTunes, store their gapless metadata. Lets
+  start by setting up some helper methods and an outline for the
+  <i>ParseGaplessData()</i> used above.</p>
+<pre class="prettyprint lang-js">
+// Since most MP3 encoders store the gapless metadata in binary, we'll need a
+// method for turning bytes into integers.  Note: This doesn't work for values
+// larger than 2^30 since we'll overflow the signed integer type when shifting.
+function ReadInt(buffer) {
+  var result = buffer.charCodeAt(0);
+  for (var i = 1; i < buffer.length; ++i) {
+    result <<= 8;
+    result += buffer.charCodeAt(i);
+  }
+  return result;
+}
+
+function ParseGaplessData(arrayBuffer) {
+  // Gapless data is generally within the first 512 bytes, so limit parsing.
+  var byteStr = String.fromCharCode.apply(
+      null, new Uint8Array(arrayBuffer.slice(0, 512)));
+
+  var frontPadding = 0, endPadding = 0, realSamples = 0;
+
+  // ... we'll fill this in as we go below.
+</pre>
+
+  <p>We'll cover Apple's iTunes metadata format first since it's the easiest to
+  parse and explain. Within MP3 and M4A files iTunes (and afconvert) write a
+  short section in ASCII like so:</p>
+
+<pre>
+iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
+</pre>
+
+  <p>This is written inside an ID3 tag within the MP3 and ADTS containers and
+  within a metadata atom inside the M4A container. For our purposes we can
+  ignore the first "0000000" token. The next three tokens are the front padding,
+  end padding, and total non-padding sample count. Dividing each of these by the
+  sample rate of the audio gives us the duration for each.</p>
+
+<pre class="prettyprint lang-js">
+  // iTunes encodes the gapless data as hex strings like so:
+  //
+  //    'iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00'
+  //    'iTunSMPB\0 ####### frontpad  endpad    real samples'
+  //
+  var iTunesDataIndex = byteStr.indexOf('iTunSMPB');
+  if (iTunesDataIndex != -1) {
+    var frontPaddingIndex = iTunesDataIndex + 19;
+    frontPadding = parseInt(byteStr.substr(frontPaddingIndex, 8), 16);
+
+    var endPaddingIndex = frontPaddingIndex + 9;
+    endPadding = parseInt(byteStr.substr(endPaddingIndex, 8), 16);
+
+    var sampleCountIndex = endPaddingIndex + 9;
+    realSamples = parseInt(byteStr.substr(sampleCountIndex, 16), 16);
+  }
+</pre>
+
+  <p>On the flip side, most open source MP3 encoders will store the gapless
+  metadata within a special
+  <a href="http://gabriel.mp3-tech.org/mp3infotag.html">Xing header</a> placed
+  inside of a silent MPEG frame (it's silent so decoders which don't understand
+  the Xing header will simply play silence). Sadly this tag is not always
+  present and has a number of optional fields. For the purposes of this demo we
+  have control over the media, but in practice some additional sanity checks
+  will be required to know when gapless metadata is actually available.</p>
+
+  <p>First we'll parse the total sample count. For simplicity we'll read this
+  from the Xing header, but it could be constructed from the normal
+  <a href="http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header">
+  MPEG audio header</a>. Xing headers can be marked by either a 'Xing' or 'Info'
+  tag. Exactly 4 bytes after this tag there are 32-bits representing the
+  total number of frames in the file; multiplying this value by the number of
+  samples per frame will give us the total samples in the file.</p>
+
+<pre class="prettyprint lang-js">
+  // Xing padding is encoded as 24bits within the header.  Note: This code will
+  // only work for Layer3 Version 1 and Layer2 MP3 files with XING frame counts
+  // and gapless information.  See the following document for more details:
+  // http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header
+  var xingDataIndex = byteStr.indexOf('Xing');
+  if (xingDataIndex == -1) xingDataIndex = byteStr.indexOf('Info');
+  if (xingDataIndex != -1) {
+    // See section 2.3.1 in the link above for the specifics on parsing the Xing
+    // frame count.
+    var frameCountIndex = xingDataIndex + 8;
+    var frameCount = llama.readInt(byteStr.substr(frameCountIndex, 4));
+
+    // For Layer3 Version 1 and Layer2 there are 1152 samples per frame.  See
+    // section 2.1.5 in the link above for more details.
+    var paddedSamples = frameCount * 1152;
+
+    // ... we'll cover this below.
+</pre>
+
+  <p>Now that we have the total number of samples we can move on to reading out
+  the number of padding samples. Depending on your encoder this may be written
+  under a 'LAME' or 'Lavf' tag nested in the Xing header. Exactly 17 bytes after
+  this header there are 3 bytes representing the front and end padding in
+  12-bits each respectively.</p>
+
+<pre class="prettyprint lang-js">
+    xingDataIndex = byteStr.indexOf('LAME');
+    if (xingDataIndex == -1) xingDataIndex = byteStr.indexOf('Lavf');
+    if (xingDataIndex != -1) {
+      // See http://gabriel.mp3-tech.org/mp3infotag.html#delays for details of
+      // how this information is encoded and parsed.
+      var gaplessDataIndex = xingDataIndex + 21;
+      var gaplessBits = llama.readInt(byteStr.substr(gaplessDataIndex, 3));
+
+      // Upper 12 bits are the front padding, lower are the end padding.
+      frontPadding = gaplessBits >> 12;
+      endPadding = gaplessBits & 0xFFF;
+    }
+
+    realSamples = paddedSamples - (frontPadding + endPadding);
+  }
+
+  return {
+    audioDuration: realSamples * SECONDS_PER_SAMPLE,
+    frontPaddingDuration: frontPadding * SECONDS_PER_SAMPLE,
+    endPaddingDuration: endPadding * SECONDS_PER_SAMPLE
+  };
+}
+</pre>
+
+  <p>With that we have a complete function for parsing the vast majority of
+  gapless content out there. Edge cases certainly abound though, so caution is
+  recommended before using similar code in production.</p>
 </div>

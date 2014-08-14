@@ -14,3 +14,15 @@ unset key
 set terminal pngcairo size 750,300 enhanced font 'PT Serif,10'
 
 # Now run "set output '<filename>.png'"
+
+set output 'mp3_gap_end.png'
+set xrange [289456:291456]
+plot 'mp3_nogapless.dat' with lines
+
+set output 'mp3_gap.png'
+set xrange [291457:294457]
+plot 'mp3_nogapless.dat' with lines
+
+set output 'mp3_mid.png'
+set xrange [288804:291804]
+plot 'mp3_gapless.dat' using 0:($0 < 290305 ? $1 : 1/0) w l, 'mp3_gapless.dat' using 0:($0 > 290304) ? $1 : 1/0 w l lc rgb 'blue'

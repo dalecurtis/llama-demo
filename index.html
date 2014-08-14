@@ -27,14 +27,14 @@
 
   <p>As most things are better demonstrated, below is the first thirty seconds
   of the excellent <a href="http://www.sintel.org/">Sintel</a> chopped into five
-  separate <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a>
-  files and reassembled without gaps using MSE. The green lines indicate where
-  the files are joined. On Chrome 38+ this will playback seamlessly; i.e.,
-  without any clicks or pops where the files are joined.</p>
+  separate <a href="http://en.wikipedia.org/wiki/MP3">MP3</a> files and
+  reassembled without gaps using MSE. The green lines indicate where the files
+  are joined. On Chrome 38+ this will playback seamlessly; i.e., without any
+  clicks or pops where the files are joined.</p>
 
   <div class="waveform-container">
     <span class="play-overlay"></span>
-    <div id="waveform_adts_gapless" class="waveform"></div>
+    <div id="waveform_mp3_gapless" class="waveform"></div>
   </div>
 
   <p>We'll get into the details of why below, but simply playing these files one
@@ -45,19 +45,19 @@
 
   <div class="waveform-container">
     <span class="play-overlay"></span>
-    <div id="waveform_adts_gap" class="waveform"></div>
+    <div id="waveform_mp3_gap" class="waveform"></div>
   </div>
 
   <p>There are a variety of ways gapless content can be created; see
-  <a href="">appendix a</a> for more details. For the purposes of this demo
+  <a href="">appendix a</a> for more details. For the purposes of this demo,
   we'll focus on the case where each audio segment has been encoded separately
-  without regard for its surrounding segments; which is the typical case when
+  without regard for its surrounding segments. Which is the typical case when
   dealing with user provided tracks.</p>
 
   <p>Before going any further, lets backtrack and cover some basics around
   setting up a MediaSource instance for working with audio. As the name implies,
   Media Source Extensions are just that, extensions to the existing media
-  elements. Below we're connecting a MediaSource
+  elements. Below, we're connecting a MediaSource
   <a href="https://developer.mozilla.org/en-US/docs/Web/API/URL.createObjectURL">
   Object URL</a> to the source attribute of an audio element; just like you
   would connect a standard URL.</p>
@@ -68,17 +68,17 @@ var mediaSource = new MediaSource();
 var SEGMENTS = 5;
 
 mediaSource.addEventListener('sourceopen', function() {
-  var sourceBuffer = mediaSource.addSourceBuffer('audio/aac');
+  var sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
 
   function onAudioLoaded(data, index) {
     // Append the ArrayBuffer data into our new SourceBuffer.
     sourceBuffer.appendBuffer(data);
   }
 
-  // Retrieve an audio segment via XHR.  For simplicity we're retrieving the
+  // Retrieve an audio segment via XHR.  For simplicity, we're retrieving the
   // entire segment at once, but we could also retrieve it in chunks and append
-  // each chunk separately.   MSE will take care of assembling the pieces.
-  GET('sintel/sintel_0.adts', function(data) { onAudioLoaded(data, 0); } );
+  // each chunk separately.  MSE will take care of assembling the pieces.
+  GET('sintel/sintel_0.mp3', function(data) { onAudioLoaded(data, 0); } );
 }, false);
 
 audio.src = window.URL.createObjectURL(mediaSource);
@@ -86,40 +86,44 @@ audio.src = window.URL.createObjectURL(mediaSource);
 
   <p>Once the MediaSource object is connected it will perform some initialization
   and eventually fire a "sourceopen" event; at which point we can create a
-  <a href="http://www.w3.org/TR/media-source/#sourcebuffer">SourceBuffer</a>
-  which is where the fun begins! Above we've created one for "audio/aac"
-  which is for AAC audio in an ADTS container; there are several
+  <a href="http://www.w3.org/TR/media-source/#sourcebuffer">SourceBuffer</a>.
+  In the example above, we're creating an "audio/mpeg" one, which is able to
+  parse and decode our MP3 segments; there are several
   <a href="http://www.w3.org/2013/12/byte-stream-format-registry/">other types</a>
   available.</p>
 
-  <p>Well come back to the code in a moment, but lets now look more closely at
-  the file we've just appended, specifically at the front and back. Below is a
-  graph of the first 3500 samples averaged across both channels from the
-  <i><a href="sintel/sintel_0.adts">sintel_0.adts</a></i> track. Each point
+  <p>We'll come back to the code in a moment, but lets now look more closely at
+  the file we've just appended, specifically at the end of it. Below is a
+  graph of the last 3000 samples averaged across both channels from the
+  <i><a href="sintel/sintel_0.mp3">sintel_0.mp3</a></i> track. Each point
   represents a float sample in the range of [-1.0, 1.0].</p>
 
   <div class="waveform-container">
-    <h5>Beginning of sintel_0.adts</h5>
-    <img src="adts_gap.png">
+    <h5>End of sintel_0.mp3</h5>
+    <img src="mp3_gap_end.png">
   </div>
 
   <p>What's with all that those zero (silent) samples!? They're actually due to
   <a href="http://en.wikipedia.org/wiki/Gapless_playback#Compression_artifacts">
   compression artifacts</a> introduced during encoding. Almost every encoder
-  introduces some type of padding. In this case Apple's
-  <a href="https://developer.apple.com/library/mac/documentation/Darwin/Reference/Manpages/man1/afconvert.1.html">
-  afconvert</a> encoder added exactly 2112 padding samples to the front and 448
-  to the end. The amount of padding varies both by encoder and by content, but
-  we know the exact values based on metadata included within each file.</p>
+  introduces some type of padding. In this case
+  <a href="http://lame.sourceforge.net/">LAME</a> added exactly 576 padding
+  samples to the end of the file.</p>
+
+  <p>In addition to the padding at the end, each file also had padding added to
+  the beginning. If we peek ahead at the <i><a href="sintel/sintel_1.mp3">
+  sintel_1.mp3</a></i> track we'll see another 576 samples of padding exists
+  at the front. The amount of padding varies by encoder and content, but we know
+  the exact values based on metadata included within each file.</p>
 
   <div class="waveform-container">
-    <h5>End of sintel_0.adts</h5>
-    <img src="adts_gap_end.png">
+    <h5>Beginning of sintel_1.mp3</h5>
+    <img src="mp3_gap.png">
   </div>
 
   <p>The sections of silence at the beginning and end of each file are what
   causes the "glitches" between segments in the previous demo. To achieve
-  perfect gapless playback we need to remove these sections of silence. Luckily
+  gapless playback we need to remove these sections of silence. Luckily,
   this is easily done with MediaSource! Below we'll modify our
   <i>onAudioLoaded()</i> method to use an
   <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#definitions">
@@ -132,11 +136,10 @@ function onAudioLoaded(data, index) {
   // Parsing the gapless metadata is unfortunately non trivial and a bit messy,
   // so we'll glaze over it here.  See appendix b if you'd like more details on
   // how to extract this metadata.  ParseGaplessData() will return a dictionary
-  // with three elements:
+  // with two elements:
   //
   //    audioDuration: Duration in seconds of all non-padding audio.
   //    frontPaddingDuration: Duration in seconds of the front padding.
-  //    endPaddingDuration: Duration in seconds of the end padding.
   //
   var gaplessMetadata = ParseGaplessData(data);
 
@@ -170,7 +173,7 @@ function onAudioLoaded(data, index) {
   if (index == 0) {
     sourceBuffer.addEventListener('updateend', function() {
       if (++index < SEGMENTS) {
-        GET('sintel/sintel_' + index + '.adts',
+        GET('sintel/sintel_' + index + '.mp3',
             function(data) { onAudioLoaded(data, index); });
       } else {
         // We've loaded all available segments, so tell MediaSource there are no
@@ -189,26 +192,26 @@ function onAudioLoaded(data, index) {
   <p>Lets see what our shiny new code has accomplished by taking another look
   at the waveform after we've applied our append windows. Below you can see that
   the silent section at the end of
-  <i><a href="sintel/sintel_0.adts">sintel_0.adts</a></i> (in red) and
+  <i><a href="sintel/sintel_0.mp3">sintel_0.mp3</a></i> (in red) and
   the silent section at the beginning of
-  <i><a href="sintel/sintel_1.adts">sintel_1.adts</a></i> (in blue) have
+  <i><a href="sintel/sintel_1.mp3">sintel_1.mp3</a></i> (in blue) have
   been removed; leaving us with a seamless transition between segments.</p>
 
   <div class="waveform-container">
-    <h5>Joining of sintel_0.adts and sintel_1.adts</h5>
-    <img src="adts_mid.png">
+    <h5>Joining of sintel_0.mp3 and sintel_1.mp3</h5>
+    <img src="mp3_mid.png">
   </div>
 
   <p>With that we've stitched all five segments seamlessly into one and have
   subsequently reached the end of our demo. Before we go, you may have noticed
   that our <i>onAudioLoaded()</i> method has no consideration for containers or
   codecs... Which means all of these techniques will work irrespective of the
-  container or codec type; below you can replay the original demo using MP3
-  instead of ADTS.</p>
+  container or codec type; below you can replay the original demo using ADTS
+  instead of MP3.</p>
 
   <div class="waveform-container">
     <span class="play-overlay"></span>
-    <div id="waveform_mp3_gapless" class="waveform"></div>
+    <div id="waveform_adts_gapless" class="waveform"></div>
   </div>
 
   <p>If you'd like to know more check the appendices below for a deeper look at
@@ -394,7 +397,7 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
   <a href="http://gabriel.mp3-tech.org/mp3infotag.html">Xing header</a> placed
   inside of a silent MPEG frame (it's silent so decoders which don't understand
   the Xing header will simply play silence). Sadly this tag is not always
-  present and has a number of optional fields. For the purposes of this demo we
+  present and has a number of optional fields. For the purposes of this demo, we
   have control over the media, but in practice some additional sanity checks
   will be required to know when gapless metadata is actually available.</p>
 
@@ -417,7 +420,7 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
     // See section 2.3.1 in the link above for the specifics on parsing the Xing
     // frame count.
     var frameCountIndex = xingDataIndex + 8;
-    var frameCount = llama.readInt(byteStr.substr(frameCountIndex, 4));
+    var frameCount = ReadInt(byteStr.substr(frameCountIndex, 4));
 
     // For Layer3 Version 1 and Layer2 there are 1152 samples per frame.  See
     // section 2.1.5 in the link above for more details.
@@ -439,7 +442,7 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
       // See http://gabriel.mp3-tech.org/mp3infotag.html#delays for details of
       // how this information is encoded and parsed.
       var gaplessDataIndex = xingDataIndex + 21;
-      var gaplessBits = llama.readInt(byteStr.substr(gaplessDataIndex, 3));
+      var gaplessBits = ReadInt(byteStr.substr(gaplessDataIndex, 3));
 
       // Upper 12 bits are the front padding, lower are the end padding.
       frontPadding = gaplessBits >> 12;
@@ -451,8 +454,7 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
 
   return {
     audioDuration: realSamples * SECONDS_PER_SAMPLE,
-    frontPaddingDuration: frontPadding * SECONDS_PER_SAMPLE,
-    endPaddingDuration: endPadding * SECONDS_PER_SAMPLE
+    frontPaddingDuration: frontPadding * SECONDS_PER_SAMPLE
   };
 }
 </pre>

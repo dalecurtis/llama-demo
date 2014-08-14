@@ -269,8 +269,8 @@ llama.drawGraph = function(container, format, isGapless, peaks) {
 
 document.addEventListener('DOMContentLoaded', function(event) {
   llama.drawGraph(
-      'waveform_adts_gapless', 'audio/aac', true, adts_gapless_peaks);
-  llama.drawGraph('waveform_adts_gap', 'audio/aac', false, adts_gap_peaks);
+      'waveform_mp3_gapless', 'audio/mpeg', true, mp3_gapless_peaks);
+  llama.drawGraph('waveform_mp3_gap', 'audio/mpeg', false, mp3_gap_peaks);
   llama.drawGraph(
-      'waveform_mp3_gapless', 'audio/mpeg', true, adts_gapless_peaks);
+      'waveform_adts_gapless', 'audio/aac', true, adts_gapless_peaks);
 });

@@ -206,12 +206,12 @@ function onAudioLoaded(data, index) {
   subsequently reached the end of our demo. Before we go, you may have noticed
   that our <i>onAudioLoaded()</i> method has no consideration for containers or
   codecs... Which means all of these techniques will work irrespective of the
-  container or codec type; below you can replay the original demo using ADTS
-  instead of MP3.</p>
+  container or codec type; below you can replay the original demo DASH-ready
+  fragmented MP4 instead of MP3.</p>
 
   <div class="waveform-container">
     <span class="play-overlay"></span>
-    <div id="waveform_adts_gapless" class="waveform"></div>
+    <div id="waveform_mp4_gapless" class="waveform"></div>
   </div>
 
   <p>If you'd like to know more check the appendices below for a deeper look at
@@ -224,15 +224,14 @@ function onAudioLoaded(data, index) {
 
   Creating gapless content can be hard to get right. Below we'll walk through
   how the <a href="http://www.sintel.org/">Sintel</a> media used in this demo
-  were created. To start you'll need a recent build of
-  <a href="http://ffmpeg.org/">FFmpeg</a> as well as the
+  were created. To start you'll need a copy of the
   <a href="http://media.xiph.org/sintel/Jan_Morgenstern-Sintel-FLAC.zip">
-  lossless FLAC soundtrack</a> for Sintel; for posterity the SHA1 is included
-  below. You'll also need
-  <a href="http://lame.sourceforge.net/">LAME</a>
-  to recreate the MP3 versions and a recent OSX installation with
+  lossless FLAC soundtrack</a> for Sintel; for posterity, the SHA1 is included
+  below. For tools, you'll need <a href="http://ffmpeg.org/">FFmpeg</a>,
+  <a href="http://gpac.wp.mines-telecom.fr/mp4box/">MP4Box</a>,
+  <a href="http://lame.sourceforge.net/">LAME</a>, and an OSX installation with
   <a href="https://developer.apple.com/library/mac/documentation/Darwin/Reference/Manpages/man1/afconvert.1.html">
-  afconvert</a> to recreate the ADTS versions.
+  afconvert</a>.
 
 <pre class="prettyprint lang-bash">
 unzip Jan_Morgenstern-Sintel-FLAC.zip
@@ -240,7 +239,7 @@ sha1sum 1-Snow_Fight.flac
 # 0535ca207ccba70d538f7324916a3f1a3d550194  1-Snow_Fight.flac
 </pre>
 
-  <p>First we'll split out the first 31.5 seconds the <i>1-Snow_Fight.flac</i>
+  <p>First, we'll split out the first 31.5 seconds the <i>1-Snow_Fight.flac</i>
   track. We also want to add a 2.5 second fade out starting at 28 seconds in to
   avoid any clicks once playback finishes. Using the FFmpeg command line below
   we can accomplish all of this and put the results in <i>sintel.flac</i>.</p>
@@ -249,23 +248,22 @@ sha1sum 1-Snow_Fight.flac
 ffmpeg -i 1-Snow_Fight.flac -t 31.5 -af "afade=t=out:st=28:d=2.5" sintel.flac
 </pre>
 
-  <p>Now we'll split the file into 5 <a href="http://en.wikipedia.org/wiki/WAV">
-  wave</a> files of ~6.5 seconds each. It's easiest to use wave since it's
-  effectively raw audio which almost every encoder supports ingestion of. Again
-  we can do this precisely with FFmpeg. After which we'll have
-  <i>sintel_0.wav</i>, <i>sintel_1.wav</i>, <i>sintel_2.wav</i>,
-  <i>sintel_3.wav</i>, and <i>sintel_4.wav</i>.</p>
+  <p>Next, we'll split the file into 5 <a href="http://en.wikipedia.org/wiki/WAV">
+  wave</a> files of ~6.5 seconds each; it's easiest to use wave since almost
+  every encoder supports ingestion of it. Again, we can do this precisely with
+  FFmpeg, after which we'll have: <i>sintel_0.wav</i>, <i>sintel_1.wav</i>,
+  <i>sintel_2.wav</i>, <i>sintel_3.wav</i>, and <i>sintel_4.wav</i>.</p>
 
 <pre class="prettyprint lang-bash">
 ffmpeg -i sintel.flac -acodec pcm_f32le -map 0 -f segment \
        -segment_list out.list -segment_time 6.5 sintel_%d.wav
 </pre>
 
-  <p>Next lets create the MP3 files. LAME has several options for creating
+  <p>Next, lets create the MP3 files. LAME has several options for creating
   gapless content. If you're in control of the content you might consider using
   --nogap with a batch encoding of all files to avoid padding between segments
-  altogether. For the purposes of this demo though we want that padding so we'll
-  use a standard high quality VBR encoding of the wave files.</p>
+  altogether. For the purposes of this demo though, we want that padding so
+  we'll use a standard high quality VBR encoding of the wave files.</p>
 
 <pre class="prettyprint lang-bash">
 lame -V=2 sintel_0.wav sintel_0.mp3
@@ -275,18 +273,16 @@ lame -V=2 sintel_3.wav sintel_3.mp3
 lame -V=2 sintel_4.wav sintel_4.mp3
 </pre>
 
-  <p>That's all that's necessary to create the MP3 files. Now lets cover the far
-  more involved creation of the ADTS files. We'll follow Apple's directions for
+  <p>That's all that's necessary to create the MP3 files. Now lets cover the
+  creation of the fragmented MP4 files. We'll follow Apple's directions for
   creating media which is
   <a href="http://www.apple.com/itunes/mastered-for-itunes/">mastered for
-  iTunes</a>. Below we'll convert the wave files into intermediate
+  iTunes</a>. Below, we'll convert the wave files into intermediate
   <a href="http://en.wikipedia.org/wiki/Core_Audio_Format">CAF</a> files, per
   the instructions, before encoding them as
   <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a> in an
-  <a href="http://en.wikipedia.org/wiki/MP4">M4A</a> container using the
-  recommended parameters. Unfortunately afconvert won't write the gapless
-  metadata we require into an ADTS container, so we'll have to demux the M4A
-  into ADTS using FFmpeg afterward.</p>
+  <a href="http://en.wikipedia.org/wiki/MP4">MP4</a> container using the
+  recommended parameters.</p>
 
 <pre class="prettyprint lang-bash">
 afconvert sintel_0.wav sintel_0_intermediate.caf -d 0 -f caff \
@@ -311,24 +307,25 @@ afconvert sintel_4_intermediate.caf -d aac -f m4af -u pgcm 2 --soundcheck-read \
           -b 256000 -q 127 -s 2 sintel_4.m4a
 </pre>
 
-  <p>We now have several M4A files which, for this demo, we want to remux into
-  ADTS. If you want to keep the audio in M4A you'll need to
-  <a href="http://gpac.wp.mines-telecom.fr/mp4box/dash/">fragment</a> each file
-  appropriately before it can be used with MediaSource. When muxing the
-  files into ADTS we need to take care to ensure we carry over the gapless
-  metadata written by afconvert to the new container.</p>
+  <p>We now have several M4A files which we need to
+  <a href="http://gpac.wp.mines-telecom.fr/mp4box/dash/">fragment</a>
+  appropriately before they can be used with MediaSource. For our purposes,
+  we'll use a fragment size of one second. MP4Box will write out each
+  fragmented MP4 as <i>sintel_#_dashinit.mp4</i> along with an MPEG-DASH
+  manifest (<i>sintel_#_dash.mpd</i>) which can be discarded.</p>
 
 <pre class="prettyprint lang-bash">
-ffmpeg -i sintel_0.m4a -acodec copy -write_id3v2 1 sintel_0.adts
-ffmpeg -i sintel_1.m4a -acodec copy -write_id3v2 1 sintel_1.adts
-ffmpeg -i sintel_2.m4a -acodec copy -write_id3v2 1 sintel_2.adts
-ffmpeg -i sintel_3.m4a -acodec copy -write_id3v2 1 sintel_3.adts
-ffmpeg -i sintel_4.m4a -acodec copy -write_id3v2 1 sintel_4.adts
+MP4Box -dash 1000 sintel_0.m4a && mv sintel_0_dashinit.mp4 sintel_0.mp4
+MP4Box -dash 1000 sintel_1.m4a && mv sintel_1_dashinit.mp4 sintel_1.mp4
+MP4Box -dash 1000 sintel_2.m4a && mv sintel_2_dashinit.mp4 sintel_2.mp4
+MP4Box -dash 1000 sintel_3.m4a && mv sintel_3_dashinit.mp4 sintel_3.mp4
+MP4Box -dash 1000 sintel_4.m4a && mv sintel_4_dashinit.mp4 sintel_4.mp4
+rm sintel_{0,1,2,3,4}_dash.mpd
 </pre>
 
-  <p>That's it! We now have ADTS and MP3 files with the correct metadata
-  necessary for gapless playback. See <a href="">appendix b</a> for more details
-  on just what that metadata looks like.</p>
+  <p>That's it! We now have fragmented MP4 and MP3 files with the correct
+  metadata necessary for gapless playback. See <a href="">appendix b</a> for
+  more details on just what that metadata looks like.</p>
 
   <h2>~ Appendix B: Parsing Gapless Metadata ~</h2>
   <p>Just like creating gapless content, parsing the gapless metadata can be
@@ -367,8 +364,8 @@ function ParseGaplessData(arrayBuffer) {
 iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
 </pre>
 
-  <p>This is written inside an ID3 tag within the MP3 and ADTS containers and
-  within a metadata atom inside the M4A container. For our purposes we can
+  <p>This is written inside an ID3 tag within the MP3 container and within a
+  metadata atom inside the MP4 container. For our purposes, we can
   ignore the first "0000000" token. The next three tokens are the front padding,
   end padding, and total non-padding sample count. Dividing each of these by the
   sample rate of the audio gives us the duration for each.</p>
@@ -376,12 +373,12 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
 <pre class="prettyprint lang-js">
   // iTunes encodes the gapless data as hex strings like so:
   //
-  //    'iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00'
-  //    'iTunSMPB\0 ####### frontpad  endpad    real samples'
+  //    'iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00'
+  //    'iTunSMPB[ 26 bytes ]####### frontpad  endpad    real samples'
   //
   var iTunesDataIndex = byteStr.indexOf('iTunSMPB');
   if (iTunesDataIndex != -1) {
-    var frontPaddingIndex = iTunesDataIndex + 19;
+    var frontPaddingIndex = iTunesDataIndex + 34;
     frontPadding = parseInt(byteStr.substr(frontPaddingIndex, 8), 16);
 
     var endPaddingIndex = frontPaddingIndex + 9;

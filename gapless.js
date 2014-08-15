@@ -56,20 +56,20 @@ llama.readInt = function(buffer) {
 }
 
 llama.parseGaplessData = function(arrayBuffer) {
-  // Gapless data is generally within the first 512 bytes, so limit parsing.
+  // Gapless data is generally within the first 4096 bytes, so limit parsing.
   var byteStr = String.fromCharCode.apply(
-      null, new Uint8Array(arrayBuffer.slice(0, 512)));
+      null, new Uint8Array(arrayBuffer.slice(0, 4096)));
 
   var frontPadding = 0, endPadding = 0, realSamples = 0;
 
   // iTunes encodes the gapless data as hex strings like so:
   //
-  //    'iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00'
-  //    'iTunSMPB\0 ####### frontpad  endpad    real samples'
+  //    'iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00'
+  //    'iTunSMPB[ 26 bytes ]####### frontpad  endpad    real samples'
   //
   var iTunesDataIndex = byteStr.indexOf('iTunSMPB');
   if (iTunesDataIndex != -1) {
-    var frontPaddingIndex = iTunesDataIndex + 19;
+    var frontPaddingIndex = iTunesDataIndex + 34;
     frontPadding = parseInt(byteStr.substr(frontPaddingIndex, 8), 16);
 
     var endPaddingIndex = frontPaddingIndex + 9;
@@ -122,7 +122,7 @@ llama.loadAudio = function(format, isGapless, mediaSource, waveform) {
 
   function segmentFilename(format, index) {
     return SINTEL_BASE_PATH + index +
-           (format == 'audio/aac' ? '.adts' : '.mp3');
+           (format == 'audio/mpeg' ? '.mp3' : '.mp4');
   }
 
   function drawMarkers() {
@@ -189,8 +189,13 @@ llama.loadAudio = function(format, isGapless, mediaSource, waveform) {
       // the real audio data for this segment as the end of our append window.
       sourceBuffer.appendWindowStart = appendTime;
       sourceBuffer.appendWindowEnd = appendTime + gaplessMetadata.audioDuration;
-      regions.push([appendTime, appendTime]);
+
+      if (appendTime > 0)
+        regions.push([appendTime, appendTime]);
     } else {
+      // Required so fragmented mp4 appends in sequence.
+      sourceBuffer.timestampOffset = appendTime;
+
       // Coalesce front and end padding between segments.
       var segmentStart = appendTime + gaplessMetadata.frontPaddingDuration;
       if (regions.length == 0)
@@ -271,6 +276,8 @@ document.addEventListener('DOMContentLoaded', function(event) {
   llama.drawGraph(
       'waveform_mp3_gapless', 'audio/mpeg', true, mp3_gapless_peaks);
   llama.drawGraph('waveform_mp3_gap', 'audio/mpeg', false, mp3_gap_peaks);
-  llama.drawGraph(
-      'waveform_adts_gapless', 'audio/aac', true, adts_gapless_peaks);
+  llama.drawGraph('waveform_mp4_gapless',
+                  'audio/mp4; codecs="mp4a.40.2"',
+                  true,
+                  aac_gapless_peaks);
 });

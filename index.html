@@ -17,6 +17,28 @@
   </div>
   <h1>Media Source Extensions for Audio:<br>Eliminating the Gap</h1>
 
+  <nav role="navigation">
+  <ul>
+    <li>Gapless Playback</li>
+    <ul>
+    <li><a href="#introduction" target="_self">Introduction</a></li>
+    <li><a href="#basic-setup" target="_self">Basic Setup</a></li>
+    <li><a href="#anomalous-waveforms" target="_self">Anomalous Waveforms</a></li>
+    <li><a href="#code-please" target="_self">Example Code</a></li>
+    <li><a href="#seamless-waveform" target="_self">A Seamless Waveform</a></li>
+    <li><a href="#conclusion" target="_self">Conclusion</a></li>
+    </ul>
+    <li>Appendices</li>
+      <ul>
+    <li><a href="#creating-gapless-content" target="_self">A: Creating Gapless Content</a></li>
+    <li><a href="#creating-gapless-content" target="_self">B: Parsing Gapless Metadata</a></li>
+    <li><a href="#creating-gapless-content" target="_self">C: On Garbage Collection</a></li>
+    </ul>
+  </ul>
+</nav>
+
+  <h2 id="introduction">Introduction</h2>
+
   <a href="http://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html">
   Media Source Extensions (MSE)</a>
   provide extended buffering and playback control for the HTML5 &lt;audio&gt;
@@ -55,6 +77,8 @@
   file has been encoded separately without regard for the audio segments before
   or after it.</p>
 
+  <h2 id="basic-setup">Basic Setup</h2>
+
   <p>First, lets backtrack and cover the basic setup of a MediaSource instance.
   Media Source Extensions, as the name implies, are just extensions to the
   existing media elements. Below, we're assigning an
@@ -91,6 +115,8 @@ audio.src = window.URL.createObjectURL(mediaSource);
   parse and decode our MP3 segments; there are several
   <a href="http://www.w3.org/2013/12/byte-stream-format-registry/">other types</a>
   available.</p>
+
+  <h2 id="anomalous-waveforms">Anomalous Waveforms</h2>
 
   <p>We'll come back to the code in a moment, but lets now look more closely at
   the file we've just appended, specifically at the end of it. Below, is a graph
@@ -133,6 +159,8 @@ audio.src = window.URL.createObjectURL(mediaSource);
   append window</a> and a
   <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-timestampOffset">
   timestamp offset</a> to remove this silence.</p>
+
+  <h2 id="code-please">Example Code</h2>
 
 <pre class="prettyprint lang-js">
 function onAudioLoaded(data, index) {
@@ -195,6 +223,8 @@ function onAudioLoaded(data, index) {
 }
 </pre>
 
+  <h2 id="seamless-waveform">A Seamless Waveform</h2>
+
   <p>Lets see what our shiny new code has accomplished by taking another look
   at the waveform after we've applied our append windows. Below, you can see
   that the silent section at the end of
@@ -207,6 +237,8 @@ function onAudioLoaded(data, index) {
     <h5>Joining of sintel_0.mp3 and sintel_1.mp3</h5>
     <img src="mp3_mid.png">
   </div>
+
+  <h2 id="conclusion">Conclusion</h2>
 
   <p>With that we've stitched all five segments seamlessly into one and have
   subsequently reached the end of our demo. Before we go, you may have noticed
@@ -227,7 +259,7 @@ function onAudioLoaded(data, index) {
 
   <p>Thanks for reading!</p>
 
-  <h2 id="creating-gapless-content">~ Appendix A: Creating Gapless Content ~</h2>
+  <h2 id="creating-gapless-content">Appendix A: Creating Gapless Content</h2>
 
   Creating gapless content can be hard to get right. Below we'll walk through
   how the <a href="http://www.sintel.org/">Sintel</a> media used in this demo
@@ -256,7 +288,7 @@ ffmpeg -i 1-Snow_Fight.flac -t 31.5 -af "afade=t=out:st=28:d=2.5" sintel.flac
 </pre>
 
   <p>Next, we'll split the file into 5 <a href="http://en.wikipedia.org/wiki/WAV">
-  wave</a> files of ~6.5 seconds each; it's easiest to use wave since almost
+  wave</a> files of6.5 seconds each; it's easiest to use wave since almost
   every encoder supports ingestion of it. Again, we can do this precisely with
   FFmpeg, after which we'll have: <i>sintel_0.wav</i>, <i>sintel_1.wav</i>,
   <i>sintel_2.wav</i>, <i>sintel_3.wav</i>, and <i>sintel_4.wav</i>.</p>
@@ -334,7 +366,7 @@ rm sintel_{0,1,2,3,4}_dash.mpd
   metadata necessary for gapless playback. See <a href="">appendix b</a> for
   more details on just what that metadata looks like.</p>
 
-  <h2 id="parsing-gapless-metadata">~ Appendix B: Parsing Gapless Metadata ~</h2>
+  <h2 id="parsing-gapless-metadata">Appendix B: Parsing Gapless Metadata</h2>
 
   <p>Just like creating gapless content, parsing the gapless metadata can be
   tricky since there's no standard method for storage. Below we'll cover how the
@@ -471,7 +503,7 @@ iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00
   recommended before using similar code in production.</p>
 
 
-  <h2 id="garbage-collection">~ Appendix C: A Brief Note on Garbage Collection ~</h2>
+  <h2 id="garbage-collection">Appendix C: On Garbage Collection</h2>
 
   <p>Memory belonging to SourceBuffers is actively
   <a href="http://en.wikipedia.org/wiki/Garbage_collection_(computer_science)">

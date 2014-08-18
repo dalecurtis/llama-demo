@@ -21,18 +21,18 @@
   <ul>
     <li>Gapless Playback</li>
     <ul>
-    <li><a href="#introduction" target="_self">Introduction</a></li>
-    <li><a href="#basic-setup" target="_self">Basic Setup</a></li>
-    <li><a href="#anomalous-waveforms" target="_self">Anomalous Waveforms</a></li>
-    <li><a href="#code-please" target="_self">Example Code</a></li>
-    <li><a href="#seamless-waveform" target="_self">A Seamless Waveform</a></li>
-    <li><a href="#conclusion" target="_self">Conclusion</a></li>
+      <li><a href="#introduction" target="_self">Introduction</a></li>
+      <li><a href="#basic-setup" target="_self">Basic Setup</a></li>
+      <li><a href="#anomalous-waveforms" target="_self">Anomalous Waveforms</a></li>
+      <li><a href="#code-please" target="_self">Example Code</a></li>
+      <li><a href="#seamless-waveform" target="_self">A Seamless Waveform</a></li>
+      <li><a href="#conclusion" target="_self">Conclusion</a></li>
     </ul>
     <li>Appendices</li>
-      <ul>
-    <li><a href="#creating-gapless-content" target="_self">A: Creating Gapless Content</a></li>
-    <li><a href="#creating-gapless-content" target="_self">B: Parsing Gapless Metadata</a></li>
-    <li><a href="#creating-gapless-content" target="_self">C: On Garbage Collection</a></li>
+    <ul>
+      <li><a href="#creating-gapless-content" target="_self">A: Creating Gapless Content</a></li>
+      <li><a href="#parsing-gapless-metadata" target="_self">B: Parsing Gapless Metadata</a></li>
+      <li><a href="#garbage-collection" target="_self">C: On Garbage Collection</a></li>
     </ul>
   </ul>
 </nav>
@@ -452,7 +452,7 @@ iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00
   // Xing padding is encoded as 24bits within the header.  Note: This code will
   // only work for Layer3 Version 1 and Layer2 MP3 files with XING frame counts
   // and gapless information.  See the following document for more details:
-  // http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header
+  // <a href="http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header">http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header</a>
   var xingDataIndex = byteStr.indexOf('Xing');
   if (xingDataIndex == -1) xingDataIndex = byteStr.indexOf('Info');
   if (xingDataIndex != -1) {
@@ -478,7 +478,7 @@ iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00
     xingDataIndex = byteStr.indexOf('LAME');
     if (xingDataIndex == -1) xingDataIndex = byteStr.indexOf('Lavf');
     if (xingDataIndex != -1) {
-      // See http://gabriel.mp3-tech.org/mp3infotag.html#delays for details of
+      // See <a href="http://gabriel.mp3-tech.org/mp3infotag.html#delays">http://gabriel.mp3-tech.org/mp3infotag.html#delays</a> for details of
       // how this information is encoded and parsed.
       var gaplessDataIndex = xingDataIndex + 21;
       var gaplessBits = ReadInt(byteStr.substr(gaplessDataIndex, 3));
@@ -518,10 +518,12 @@ iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00
   much data at once and to manually remove ranges from the media timeline that
   are no longer necessary.</p>
 
-  <p>Ranges can be removed via the <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end">remove()</a> method on each SourceBuffer; which takes
-  a [start, end] range in seconds. Similar to appendBuffer(), each remove() will
-  fire an "updateend" event once it completes. Other removes or appends should
-  not be issued until the event fires.</p>
+  <p>Ranges can be removed via the
+  <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end">
+  remove()</a> method on each SourceBuffer; which takes a [start, end] range in
+  seconds. Similar to appendBuffer(), each remove() will fire an "updateend"
+  event once it completes. Other removes or appends should not be issued until
+  the event fires.</p>
 
   <p>On desktop Chrome, you can keep approximately 12 megabytes of audio content
   and 150 megabytes of video content in memory at once. You should not rely on

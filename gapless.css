@@ -72,7 +72,7 @@ pre, code.prettyprint {
 
 pre a {
   font-weight: bold;
-  color: gold;
+  text-decoration: none;
 }
 
 #main {

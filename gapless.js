@@ -67,6 +67,8 @@ llama.parseGaplessData = function(arrayBuffer) {
   //    'iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00'
   //    'iTunSMPB[ 26 bytes ]####### frontpad  endpad    real samples'
   //
+  // The approach here elides the complexity of actually parsing MP4 atoms. It
+  // may not work for all files without some tweaks.
   var iTunesDataIndex = byteStr.indexOf('iTunSMPB');
   if (iTunesDataIndex != -1) {
     var frontPaddingIndex = iTunesDataIndex + 34;

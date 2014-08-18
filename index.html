@@ -12,13 +12,14 @@
 <!-- TODO: Look into using polymer / material elements / new hawtness. -->
 
 <div id="main">
-  <div id="header">
+  <div class="header">
     <span style="float: right">Dale Curtis</span>August 8, 2014
   </div>
   <h1>Media Source Extensions for Audio:<br>Eliminating the Gap</h1>
 
-  <a href="http://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html">Media Source Extensions (MSE)</a>
-  provide extended control of playback and buffering for the HTML5 &lt;audio&gt;
+  <a href="http://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html">
+  Media Source Extensions (MSE)</a>
+  provide extended buffering and playback control for the HTML5 &lt;audio&gt;
   and &lt;video&gt; elements. While originally developed to facilitate
   <a href="http://dashif.org/mpeg-dash/">Dynamic Adaptive Streaming over HTTP
   (DASH)</a> based video players, below we'll see how they can be used for
@@ -48,19 +49,18 @@
     <div id="waveform_mp3_gap" class="waveform"></div>
   </div>
 
-  <p>There are a variety of ways gapless content can be created; see
-  <a href="">appendix a</a> for more details. For the purposes of this demo,
-  we'll focus on the case where each audio segment has been encoded separately
-  without regard for its surrounding segments. Which is the typical case when
-  dealing with user provided tracks.</p>
+  <p>There are a <a href="#creating-gapless-content" target="_self">variety of
+  ways to create gapless content</a>. For the purposes of this demo, we'll
+  focus on the type of files a normal user might have lying around. Where each
+  file has been encoded separately without regard for the audio segments before
+  or after it.</p>
 
-  <p>Before going any further, lets backtrack and cover some basics around
-  setting up a MediaSource instance for working with audio. As the name implies,
-  Media Source Extensions are just that, extensions to the existing media
-  elements. Below, we're connecting a MediaSource
+  <p>First, lets backtrack and cover the basic setup of a MediaSource instance.
+  Media Source Extensions, as the name implies, are just extensions to the
+  existing media elements. Below, we're assigning an
   <a href="https://developer.mozilla.org/en-US/docs/Web/API/URL.createObjectURL">
-  Object URL</a> to the source attribute of an audio element; just like you
-  would connect a standard URL.</p>
+  Object URL</a>, representing our MediaSource instance, to the source
+  attribute of an audio element; just like you would set a standard URL.</p>
 
 <pre class="prettyprint lang-js">
 var audio = document.createElement('audio');
@@ -84,7 +84,7 @@ mediaSource.addEventListener('sourceopen', function() {
 audio.src = window.URL.createObjectURL(mediaSource);
 </pre>
 
-  <p>Once the MediaSource object is connected it will perform some initialization
+  <p>Once the MediaSource object is connected, it will perform some initialization
   and eventually fire a "sourceopen" event; at which point we can create a
   <a href="http://www.w3.org/TR/media-source/#sourcebuffer">SourceBuffer</a>.
   In the example above, we're creating an "audio/mpeg" one, which is able to
@@ -93,10 +93,11 @@ audio.src = window.URL.createObjectURL(mediaSource);
   available.</p>
 
   <p>We'll come back to the code in a moment, but lets now look more closely at
-  the file we've just appended, specifically at the end of it. Below is a
-  graph of the last 3000 samples averaged across both channels from the
-  <i><a href="sintel/sintel_0.mp3">sintel_0.mp3</a></i> track. Each point
-  represents a float sample in the range of [-1.0, 1.0].</p>
+  the file we've just appended, specifically at the end of it. Below, is a graph
+  of the last 3000 samples averaged across both channels from the
+  <i><a href="sintel/sintel_0.mp3">sintel_0.mp3</a></i> track. Each pixel on the
+  red line is a <a href="http://en.wikipedia.org/wiki/Audio_bit_depth">
+  floating point sample</a> in the range of [-1.0, 1.0].</p>
 
   <div class="waveform-container">
     <h5>End of sintel_0.mp3</h5>
@@ -114,7 +115,9 @@ audio.src = window.URL.createObjectURL(mediaSource);
   the beginning. If we peek ahead at the <i><a href="sintel/sintel_1.mp3">
   sintel_1.mp3</a></i> track we'll see another 576 samples of padding exists
   at the front. The amount of padding varies by encoder and content, but we know
-  the exact values based on metadata included within each file.</p>
+  the exact values based on <a href="#parsing-gapless-metadata" target="_self">
+  metadata</a> included within each file.
+  </p>
 
   <div class="waveform-container">
     <h5>Beginning of sintel_1.mp3</h5>
@@ -123,8 +126,8 @@ audio.src = window.URL.createObjectURL(mediaSource);
 
   <p>The sections of silence at the beginning and end of each file are what
   causes the "glitches" between segments in the previous demo. To achieve
-  gapless playback we need to remove these sections of silence. Luckily,
-  this is easily done with MediaSource! Below we'll modify our
+  gapless playback, we need to remove these sections of silence. Luckily,
+  this is easily done with MediaSource! Below, we'll modify our
   <i>onAudioLoaded()</i> method to use an
   <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#definitions">
   append window</a> and a
@@ -133,10 +136,9 @@ audio.src = window.URL.createObjectURL(mediaSource);
 
 <pre class="prettyprint lang-js">
 function onAudioLoaded(data, index) {
-  // Parsing the gapless metadata is unfortunately non trivial and a bit messy,
-  // so we'll glaze over it here.  See appendix b if you'd like more details on
-  // how to extract this metadata.  ParseGaplessData() will return a dictionary
-  // with two elements:
+  // Parsing gapless metadata is unfortunately non trivial and a bit messy, so
+  // we'll glaze over it here; see the <a href="#parsing-gapless-metadata" target="_self">appendix</a> for details.  ParseGaplessData()
+  // will return a dictionary with two elements:
   //
   //    audioDuration: Duration in seconds of all non-padding audio.
   //    frontPaddingDuration: Duration in seconds of the front padding.
@@ -144,31 +146,31 @@ function onAudioLoaded(data, index) {
   var gaplessMetadata = ParseGaplessData(data);
 
   // Each appended segment must be appended relative to the next.  To avoid any
-  // overlaps we'll use the ending timestamp of the last append as the starting
+  // overlaps, we'll use the ending timestamp of the last append as the starting
   // point for our next append or zero if we haven't appended anything yet.
   var appendTime = index > 0 ? sourceBuffer.buffered.end(0) : 0;
 
+  // Simply put, an append window allows you to trim off audio (or video) frames
+  // which fall outside of a specified time range.  Here, we'll use the end of
+  // our last append as the start of our append window and the end of the real
+  // audio data for this segment as the end of our append window.
+  sourceBuffer.appendWindowStart = appendTime;
+  sourceBuffer.appendWindowEnd = appendTime + gaplessMetadata.audioDuration;
+
   // The timestampOffset field essentially tells MediaSource where in the media
-  // timeline the data given to appendBuffer() should be placed.  I.e. if the
+  // timeline the data given to appendBuffer() should be placed.  I.e., if the
   // timestampOffset is 1 second, the appended data will start 1 second into
   // playback.
   //
   // MediaSource requires that the media timeline starts from time zero, so we
   // need to ensure that the data left after filtering by the append window
   // starts at time zero.  We'll do this by shifting all of the padding we want
-  // to discard before our append time.
+  // to discard before our append time (and thus, before our append window).
   sourceBuffer.timestampOffset =
       appendTime - gaplessMetadata.frontPaddingDuration;
 
-  // Simply put, an append window allows you to trim off audio (or video) frames
-  // which fall outside of a specified window.  Here we'll use the end of our
-  // last append as the start of our append window and the end of the real audio
-  // data for this segment as the end of our append window.
-  sourceBuffer.appendWindowStart = appendTime;
-  sourceBuffer.appendWindowEnd = appendTime + gaplessMetadata.audioDuration;
-
-  // When appendBuffer() completes it will fire an "updateend" event signaling
-  // that it's okay to append another segment of media. Here we'll chain the
+  // When appendBuffer() completes, it will fire an "updateend" event signaling
+  // that it's okay to append another segment of media.  Here, we'll chain the
   // append for the next segment to the completion of our current append.
   if (index == 0) {
     sourceBuffer.addEventListener('updateend', function() {
@@ -185,13 +187,17 @@ function onAudioLoaded(data, index) {
 
   // appendBuffer() will now use the timestamp offset and append window settings
   // to filter and timestamp the data we're appending.
+  //
+  // Note: While this demo uses very little memory, more complex use cases need
+  // to be careful about memory usage or <a href="#garbage-collection" target="_self">garbage collection</a> may remove ranges of
+  // media in unexpected places.
   sourceBuffer.appendBuffer(data);
 }
 </pre>
 
   <p>Lets see what our shiny new code has accomplished by taking another look
-  at the waveform after we've applied our append windows. Below you can see that
-  the silent section at the end of
+  at the waveform after we've applied our append windows. Below, you can see
+  that the silent section at the end of
   <i><a href="sintel/sintel_0.mp3">sintel_0.mp3</a></i> (in red) and
   the silent section at the beginning of
   <i><a href="sintel/sintel_1.mp3">sintel_1.mp3</a></i> (in blue) have
@@ -218,9 +224,10 @@ function onAudioLoaded(data, index) {
   gapless content creation and metadata parsing. You can also explore
   <a href="gapless.js"><i>gapless.js</i></a> for a closer look at the code
   powering this demo.</p>
+
   <p>Thanks for reading!</p>
 
-  <h2>~ Appendix A: Creating Gapless Content ~</h2>
+  <h2 id="creating-gapless-content">~ Appendix A: Creating Gapless Content ~</h2>
 
   Creating gapless content can be hard to get right. Below we'll walk through
   how the <a href="http://www.sintel.org/">Sintel</a> media used in this demo
@@ -327,7 +334,8 @@ rm sintel_{0,1,2,3,4}_dash.mpd
   metadata necessary for gapless playback. See <a href="">appendix b</a> for
   more details on just what that metadata looks like.</p>
 
-  <h2>~ Appendix B: Parsing Gapless Metadata ~</h2>
+  <h2 id="parsing-gapless-metadata">~ Appendix B: Parsing Gapless Metadata ~</h2>
+
   <p>Just like creating gapless content, parsing the gapless metadata can be
   tricky since there's no standard method for storage. Below we'll cover how the
   two most common encoders, LAME and iTunes, store their gapless metadata. Lets
@@ -361,7 +369,7 @@ function ParseGaplessData(arrayBuffer) {
   short section in ASCII like so:</p>
 
 <pre>
-iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
+iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00
 </pre>
 
   <p>This is written inside an ID3 tag within the MP3 container and within a
@@ -376,6 +384,8 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
   //    'iTunSMPB[ 26 bytes ]0000000 00000840 000001C0 0000000000046E00'
   //    'iTunSMPB[ 26 bytes ]####### frontpad  endpad    real samples'
   //
+  // The approach here elides the complexity of actually parsing MP4 atoms. It
+  // may not work for all files without some tweaks.
   var iTunesDataIndex = byteStr.indexOf('iTunSMPB');
   if (iTunesDataIndex != -1) {
     var frontPaddingIndex = iTunesDataIndex + 34;
@@ -459,4 +469,43 @@ iTunSMPB\0 0000000 00000840 000001C0 0000000000046E00
   <p>With that we have a complete function for parsing the vast majority of
   gapless content out there. Edge cases certainly abound though, so caution is
   recommended before using similar code in production.</p>
+
+
+  <h2 id="garbage-collection">~ Appendix C: A Brief Note on Garbage Collection ~</h2>
+
+  <p>Memory belonging to SourceBuffers is actively
+  <a href="http://en.wikipedia.org/wiki/Garbage_collection_(computer_science)">
+  garbage collected</a> according to content type, platform specific limits, and
+  the current play position. In Chrome, memory will first be reclaimed from
+  already played buffers. However, if memory usage exceeds platform specific
+  limits, it will remove memory from unplayed buffers.</p>
+
+  <p>When playback reaches a gap in the timeline due to reclaimed memory it may
+  glitch if the gap is small enough or stall completely if the gap is too large.
+  Neither is a great user experience, so it's important to avoid appending too
+  much data at once and to manually remove ranges from the media timeline that
+  are no longer necessary.</p>
+
+  <p>Ranges can be removed via the <a href="https://dvcs.w3.org/hg/html-media/raw-file/tip/media-source/media-source.html#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end">remove()</a> method on each SourceBuffer; which takes
+  a [start, end] range in seconds. Similar to appendBuffer(), each remove() will
+  fire an "updateend" event once it completes. Other removes or appends should
+  not be issued until the event fires.</p>
+
+  <p>On desktop Chrome, you can keep approximately 12 megabytes of audio content
+  and 150 megabytes of video content in memory at once. You should not rely on
+  these values across browsers or platforms; e.g., they are most certainly not
+  representative of mobile devices.</p>
+
+  <p>Garbage collection only impacts data added to SourceBuffers; there are no
+  limits on how much data you can keep buffered in JavaScript variables. You
+  may also reappend the same data in the same position if necessary.</p>
+
+  <div class="header">
+    <span style="float: right;">
+      Powered by <a href="https://code.google.com/p/google-code-prettify/">
+      google-code-prettify</a>, <a href="http://www.gnuplot.info/">gnuplot</a>,
+      and <a href="http://www.wavesurfer.fm/">wavesurfer.fm</a>.
+    </span>
+  </div>
+  <br/>
 </div>

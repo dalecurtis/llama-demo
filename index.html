@@ -48,27 +48,39 @@
   audio; specifically for
   <a href="http://en.wikipedia.org/wiki/Gapless_playback">gapless playback</a>.
 
-  <p>As most things are better demonstrated, below is the first thirty seconds
-  of the excellent <a href="http://www.sintel.org/">Sintel</a> chopped into five
-  separate <a href="http://en.wikipedia.org/wiki/MP3">MP3</a> files and
-  reassembled without gaps using MSE. The green lines indicate where the files
-  are joined. On Chrome 38+ this will playback seamlessly; i.e., without any
-  clicks or pops where the files are joined.</p>
+  <p>You've likely listened to a music album where songs flowed seamlessly
+  across tracks; you may even be listening to one right now. Artists create
+  these <a href="http://en.wikipedia.org/wiki/Gapless_playback">gapless
+  playback</a> experiences both as an artistic choice as well as an artifact of
+  <a href="http://en.wikipedia.org/wiki/Gramophone_record">vinyl records</a> and
+  <a href="http://en.wikipedia.org/wiki/Compact_disc">CDs</a> where audio was
+  written as one continuous stream. Unfortunately, due to the way modern audio
+  codecs like
+  <a href="http://en.wikipedia.org/wiki/MP3">MP3</a> and
+  <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a>
+  work, this seamless aural experience is often lost today.</p>
 
-  <div class="waveform-container">
-    <span class="play-overlay"></span>
-    <div id="waveform_mp3_gapless" class="waveform"></div>
-  </div>
-
-  <p>We'll get into the details of why below, but simply playing these files one
-  after another without consideration for gaps inherent in their encoding will
-  result in audible artifacts between files. The red lines in the following
-  graph indicate the size of these gaps. You'll hear glitches at these points
-  which weren't present in the first demo.</p>
+  <p>We'll get into the details of why below, but for now lets start with a
+  demonstration. Below is the first thirty seconds of the excellent
+  <a href="http://www.sintel.org/">Sintel</a> chopped into five separate
+  MP3 files and reassembled using MSE. The red lines indicate  gaps introduced
+  during the creation (encoding) of each MP3; you'll hear glitches at these
+  points.</p>
 
   <div class="waveform-container">
     <span class="play-overlay"></span>
     <div id="waveform_mp3_gap" class="waveform"></div>
+  </div>
+
+  <p>Yuck! That's not a great experience; we can do better. With a little more
+  work, using the exact same MP3 files in the above demo, we can use MSE to
+  remove those annoying gaps. The green lines in the next demo indicate where
+  the files have been joined and the gaps removed. On Chrome 38+ this will
+  playback seamlessly!</p>
+
+  <div class="waveform-container">
+    <span class="play-overlay"></span>
+    <div id="waveform_mp3_gapless" class="waveform"></div>
   </div>
 
   <p>There are a <a href="#creating-gapless-content" target="_self">variety of
@@ -288,7 +300,7 @@ ffmpeg -i 1-Snow_Fight.flac -t 31.5 -af "afade=t=out:st=28:d=2.5" sintel.flac
 </pre>
 
   <p>Next, we'll split the file into 5 <a href="http://en.wikipedia.org/wiki/WAV">
-  wave</a> files of6.5 seconds each; it's easiest to use wave since almost
+  wave</a> files of 6.5 seconds each; it's easiest to use wave since almost
   every encoder supports ingestion of it. Again, we can do this precisely with
   FFmpeg, after which we'll have: <i>sintel_0.wav</i>, <i>sintel_1.wav</i>,
   <i>sintel_2.wav</i>, <i>sintel_3.wav</i>, and <i>sintel_4.wav</i>.</p>

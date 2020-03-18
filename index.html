@@ -60,6 +60,14 @@
   <a href="http://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</a>
   work, this seamless aural experience is often lost today.</p>
 
+  <p>Note: Most MP3 encoders (including LAME as used in this example) do not
+  produce sufficient pre-roll and post-roll for a flawless transition between
+  segments. If you need a truly flawless transition, we recommend using AAC
+  with the default paddings of 2112 and 960; see below. Alternatively you can
+  try to ensure your MP3 encoder generates at least 1152 samples of pre-roll
+  and post-roll. See <a href="https://github.com/dalecurtis/llama-demo/issues/3">
+  issue #3</a></p>
+
   <p>We'll get into the details of why below, but for now lets start with a
   demonstration. Below is the first thirty seconds of the excellent
   <a href="http://www.sintel.org/">Sintel</a> chopped into five separate
